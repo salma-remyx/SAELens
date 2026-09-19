@@ -2,90 +2,120 @@ question:
   kind: capability
   ask: "@remyx-ai validate — does the AbsTopK port select exactly the k largest-magnitude pre-activations per token with signs preserved (~half negative) on real gpt2 activations, and is the >0 -> !=0 eval-counting fix an exact no-op for ReLU variants?"
 loop: {max_iterations: 8, fix_code: true}
+requires: [wandb]
 benchmarks:
   - name: abstopk-mechanism
-    suite: "notebook:benchmark/bench_abstopk_mechanism.ipynb"
+    suite:
+      notebook:
+        path: "benchmark/bench_abstopk_mechanism.ipynb"
+        packages: [wandb]
     baseline: none
     scorer: l0_deficit_from_k
     policy: {guardrail_veto: true}
-    compute: {tier: cpu}
+    # timeout derivation: 2 arms x ~122 steps (500k tokens / 4096 tokens-per-step)
+    # x ~8-10 s/step on CPU ~= 35-40 min training + gpt2 download + pile-stream
+    # warmup + held-out eval -> 5400 s ceiling for one job
+    compute: {tier: cpu, timeout_s: 5400}
     metrics:
       - name: l0_deficit_from_k
         direction: min
         threshold: 0.0
         role: target
         bar: goal
-        reads_as: "k minus mean per-token L0 under the new !=0 counting; 0.0 = exactly k signed features survived (a ReLU'd variant would read ~32 at k=64)"
+        reads_as: "k minus mean per-token L0 under the new !=0 counting on the TRAINED AbsTopK; 0.0 = exactly k signed features survived (sign-killing reads ~k/2)"
       - name: relu_topk_l0_predicate_delta
         direction: min
         threshold: 0.5
         role: guardrail
         bar: goal
-        reads_as: "absolute per-token L0 shift on the ReLU-family control from swapping >0 for !=0; correct arithmetic gives exactly 0.0, and the 0.5 bound (half an active feature per token) is a real gate — any wholesale predicate regression (>= 0 counting padding zeros, < 0 counting nothing) shifts L0 by >= 1.0, up to the full k=64, and fails it"
+        reads_as: "absolute per-token L0 shift on the ReLU-family control from swapping >0 for !=0; correct arithmetic gives exactly 0.0, and the 0.5 bound (half an active feature per token) is a real gate — any wholesale predicate regression (>= 0 counting padding zeros, < 0 counting nothing) shifts L0 by >= 1.0, up to the full k=64, and fails it; measured on the trained TopK control, which exists identically on the baseline checkout, so the guardrail is baseline-achievable"
       - name: bidirectionality_deviation
         direction: min
-        threshold: 0.0084
+        threshold: 0.15
         role: diagnostic
-        reads_as: "|negative share of active features - 0.5|; 3-sigma band from 500 tokens x k=64 = 32000 signs (sigma = 0.002795)"
+        reads_as: "|negative share of TRAINED active features - 0.5|; random-init 3-sigma band was 0.0084, trained features may specialize — 0.15 is a reading bar, not a gate"
       - name: old_predicate_undercount_ratio
         direction: min
         threshold: 0.9
         role: diagnostic
-        reads_as: "old >0-counted L0 over new !=0-counted L0 on AbsTopK acts; must be <= 0.9 to demonstrate a real undercount — expected ~0.5 (ratio = 1 - negative share); 1.0 would mean no negative actives at all (sign-killing), i.e. the undercount the fix corrects does not exist"
+        reads_as: "old >0-counted L0 over new !=0-counted L0 on trained AbsTopK acts; must be <= 0.9 to demonstrate a real undercount — expected ~0.5 (ratio = 1 - negative share); 1.0 would mean no negative actives at all (sign-killing), i.e. the undercount the fix corrects does not exist"
       - name: magnitude_selection_exact
         direction: max
         threshold: 1.0
         role: diagnostic
-        reads_as: "share of tokens whose kept set equals exactly the k largest-magnitude pre-activations"
+        reads_as: "share of held-out tokens whose kept set equals exactly the k largest-magnitude pre-activations"
       - name: sign_preservation_exact
         direction: max
         threshold: 1.0
         role: diagnostic
         reads_as: "share of active features whose output sign matches their pre-activation sign"
+      - name: mse_ratio_abstopk_vs_topk
+        direction: min
+        threshold: 1.0
+        role: diagnostic
+        bar: goal
+        reads_as: "trained-AbsTopK MSE over trained-TopK MSE at matched k=64 on held-out gpt2 activations; paper claims <= 1 at scale — directional at 500k tokens"
       - name: abstopk_registered
         direction: max
         threshold: 1.0
         role: diagnostic
         bar: sanity
-        reads_as: "1.0 when sae_lens.registry resolves abstopk to AbsTopKSAE and AbsTopKTrainingSAE"
+        reads_as: "1.0 when the repo runner resolves architecture abstopk end-to-end (the PR's registration block + AbsTopKTrainingSAE construction during a completed training arm); 0.0 on a checkout where the symbols are absent"
+      - name: wandb_runs_logged
+        direction: max
+        threshold: 2.0
+        role: diagnostic
+        bar: sanity
+        reads_as: "arms whose wandb run initialized and finished inside the engine's run group; 2.0 = control + test dashboards exist to link from the PR"
     held_constant:
-      - "model gpt2 via HookedTransformer on CPU, hook blocks.6.hook_resid_post, first 500 token positions of a fixed text"
+      - "one LanguageModelSAERunnerConfig for both arms — model gpt2, hook blocks.6.hook_resid_post, dataset monology/pile-uncopyrighted (streaming), context_size 256, train_batch_size_tokens 4096, training_tokens 500k (a real optimizer-driven run at the cpu tier; the VALIDATION.md protocol scales the same config to 500M-1B tokens on GPU), device cpu — only the sae= architecture differs (topk control vs abstopk test)"
       - "k=64, d_sae=8192, d_in=768 — the PR pre-registered sweep point (VALIDATION.md)"
-      - "seed 0 for the random encoder projection; identical pre-activations fed to AbsTopK and the TopK/ReLU control"
-      - "float32 CPU tensors, single deterministic pass, no wall-clock timing"
+      - "held-out eval on a fixed text through the trained SAEs; identical batches fed to the AbsTopK test and the TopK control; mechanism metrics computed on float32 tensors from the trained weights"
+      - "both arms log to one W&B group: the engine sets WANDB_API_KEY/ENTITY/PROJECT/RUN_GROUP, the script only splits WANDB_RUN_ID per arm (-topk / -abstopk)"
     avoid:
-      - "no reconstruction-quality numbers: the encoder is random-init so mse/ce_loss_score/explained_variance would be meaningless and are not printed"
-      - "the run_evals/ActivationsStore loop itself is not driven (ActivationsStore/ActivationScaler constructor signatures are outside the visible context); the changed !=0/>0 predicates are measured on the real AbsTopK operator output instead"
-      - "no W&B logging — the training-parity run is deferred by the PR itself"
-      - "no wall-clock timing on shared CPU; no unpinned live APIs (gpt2 weights fetched once from HF and cached)"
+      - "the scorer never reads the wandb dashboard — metrics come from the script's JSON line; the dashboard is linked evidence for the PR template, not the instrument"
+      - "run_evals is not driven directly (ActivationScaler/ActivationsStore constructor signatures are outside the visible context); training itself goes through the repo runner, and the changed !=0/>0 predicates are measured on the real trained-operator outputs"
+      - "no hardcoded wandb entity or project — routing comes from the engine's env, never invented in the script"
+      - "no wall-clock timing and no cuda — tier: cpu provisions no GPU; the fixed seed keeps the run reproducible up to streaming-buffer order, and the exact-k/sign/predicate metrics are drift-free"
+      - "no unpinned live APIs: gpt2 weights and the pile stream are fetched by the repo's own loaders (model-name/dataset-path pinned, HF-cached); no CE/KL evals, no interpretability probing"
     report:
-      headline: "Mechanism checks hold on real gpt2 activations: exactly-k magnitude selection with signs preserved, ~even sign split, and the predicate swap is an exact no-op for ReLU variants — parity vs TopK/JumpReLU remains deferred"
+      headline: "A real W&B-logged training run (one group: TopK control vs AbsTopK test) trains both arms end-to-end through the repo runner on CPU; the mechanism holds on the trained AbsTopK — exactly-k magnitude selection, signs preserved, !=0 L0 counting negative actives — with short-run MSE parity directional at 500k tokens"
       findings:
-        - "per-token L0 under the new !=0 counting falls {l0_deficit_from_k} short of k=64 (0.0 expected; ~32 would indicate sign-killing)"
-        - "the >0 -> !=0 swap changes TopK/ReLU L0 by {relu_topk_l0_predicate_delta} (exactly 0.0 expected; guardrail bound 0.5, so any wholesale predicate regression reading >= 1.0 fails)"
-        - "the negative share of active features sits {bidirectionality_deviation} from 0.5 (3-sigma band 0.0084)"
-        - "the old >0 counting reports {old_predicate_undercount_ratio} of the new L0 on AbsTopK acts (~0.5 = the corrected 2x undercount; bound 0.9, 1.0 = no negative actives)"
-        - "{magnitude_selection_exact} of tokens keep exactly the k largest-magnitude pre-activations"
+        - "per-token L0 under the new !=0 counting falls {l0_deficit_from_k} short of k=64 on the trained AbsTopK (0.0 expected; ~32 would indicate sign-killing)"
+        - "the >0 -> !=0 swap changes the trained TopK control's L0 by {relu_topk_l0_predicate_delta} (exactly 0.0 expected; guardrail bound 0.5, so any wholesale predicate regression reading >= 1.0 fails)"
+        - "the negative share of trained active features sits {bidirectionality_deviation} from 0.5 (random-init 3-sigma band was 0.0084; trained features may specialize)"
+        - "the old >0 counting reports {old_predicate_undercount_ratio} of the new L0 on trained AbsTopK acts (~0.5 = the corrected 2x undercount; bound 0.9, 1.0 = no negative actives)"
+        - "{magnitude_selection_exact} of held-out tokens keep exactly the k largest-magnitude pre-activations"
         - "{sign_preservation_exact} of active features retain their pre-activation sign"
-        - "{abstopk_registered} registry wiring for architecture abstopk"
+        - "trained AbsTopK reconstruction MSE is {mse_ratio_abstopk_vs_topk} times the trained TopK control's at matched k=64 (paper claims <= 1 at scale; 500k tokens is directional)"
+        - "{abstopk_registered} registry wiring for architecture abstopk; {wandb_runs_logged} wandb runs (2.0 = control + test) landed in the engine's run group"
       establishes:
-        - "the ported operator implements the paper's selection rule — top-k by magnitude, sign preserved, exactly k active per token — on real residual-stream activations at the PR's pre-registered geometry"
-        - "the eval-counting fix counts negative-active features and is an exact no-op for ReLU-family activations at the predicate level"
+        - "AbsTopK trains end-to-end through the repo's own LanguageModelSAETrainingRunner and logs beside a matched TopK control into one W&B group — the control/test dashboards the PR template requires"
+        - "on trained weights at the PR's pre-registered geometry, the operator still selects exactly the k largest-magnitude pre-activations with signs preserved, and the !=0 eval counting reports them"
+        - "the >0 -> !=0 predicate swap remains an exact no-op for the trained ReLU-family (TopK) control"
       does_not_establish:
-        - "reconstruction/CE parity with TopK or JumpReLU at matched L0 — the PR defers that to a W&B run that has not happened"
+        - "full-scale sparsity-fidelity parity (500M-1B tokens on GPU, k in {16,64,256}, JumpReLU control) — the run the PR itself defers; the 500k-token MSE ratio is directional only"
         - "any interpretability claim: probing, steering, or single features encoding contrasting concepts"
-        - "behaviour of the full get_sparsity_and_variance_metrics loop through ActivationsStore — only its changed predicates are exercised"
+        - "behaviour of the full run_evals loop through ActivationsStore — only its changed predicates are exercised on trained outputs"
         - "the latent issue that evals.py l1 is a signed sum and cancels toward 0 for AbsTopK (untouched by this PR)"
       not_measured:
-        - "mse, ce_loss_score, explained_variance, dead-feature counts, training dynamics, parameter-count parity with TopK, throughput/wall-clock"
-      caveat: "the paper's headline results (7 probing/steering tasks across 4 LLMs, matching supervised DiM) have no harness in this repo; only the mechanism and eval-counting slices of the claim are testable now"
-      next: "run the deferred W&B training-parity protocol: shared activation cache for gpt2/pythia-160m, k in {16,64,256}, TopK/JumpReLU controls, logging run_evals l0/mse/ce_loss_score plus dead-feature count"
+        - "ce_loss_score, kl_div, explained_variance, dead-feature counts beyond the trainer's own wandb curves, throughput/wall-clock, feature-dashboard interpretability"
+      caveat: "the paper's headline results (7 probing/steering tasks across 4 LLMs, matching supervised DiM) have no harness in this repo; this run supplies the template's control/test dashboards plus mechanism evidence, not the deferred parity frontier"
+      next: "run the full VALIDATION.md protocol on GPU: shared activation cache, k in {16,64,256}, TopK and JumpReLU controls, 500M-1B training tokens, run_evals l0/mse/ce_loss_score plus dead-feature count on the same W&B project"
     provenance:
-      suite: "synthesized"
-      held_constant: "protocol_doc:VALIDATION.md (PR diff pre-registers gpt2, blocks.*.hook_resid_post, d_sae=8192, k in {16,64,256})"
+      suite: "synthesized (script drives the repo's own LanguageModelSAETrainingRunner entry point, pre-registered in protocol_doc:VALIDATION.md)"
+      training_protocol: "protocol_doc:VALIDATION.md (gpt2, blocks.6.hook_resid_post, monology/pile-uncopyrighted streaming, train_batch_size_tokens 4096, context_size 256, k in {16,64,256} — single point k=64 at 500k tokens chosen as the affordable real run at the cpu tier)"
+      wandb: "user_guidance (reviewer: real training run logging to W&B) + pr_template ('Please links to wandb dashboards with a control and test group')"
       l0_deficit_from_k: "inferred (claim arithmetic: exactly-k scatter of signed values; deficit > 0 only if a selected pre-activation is exactly 0.0)"
-      relu_topk_l0_predicate_delta: "inferred (claim arithmetic: (t>0) == (t!=0) elementwise for t >= 0 gives exactly 0.0; bound 0.5 = half an active feature per token, chosen between exact correctness (0.0) and the smallest systematic regression (1 full feature/token, up to k=64 for a wrong operator/tensor) so the guardrail can actually fail)"
-      old_predicate_undercount_ratio: "inferred (ratio = positive actives / all actives = 1 - negative share; expected ~0.5 with the same 3-sigma band as bidirectionality_deviation; bound 0.9 fails only when neg_share < 0.10, i.e. essentially no undercount for the fix to correct)"
-      bidirectionality_deviation: "inferred (3-sigma band 0.008385 at 32000 signs on symmetric pre-activations)"
-      baseline_fallback: "inferred (diff-added AbsTopK imported defensively; on the baseline arm the pathway degrades to the pre-change ReLU-family control: abstopk_registered 0.0, old_predicate_undercount_ratio 1.0, bidirectionality_deviation 0.5 — no crash, guardrail still passes at exactly 0.0 against its 0.5 bound, JSON line still prints)"
-      compute: "inferred (mechanism/numerics claim, no device claim; GPU parity explicitly deferred by the PR)"
+      relu_topk_l0_predicate_delta: "inferred (claim arithmetic: (t>0) == (t!=0) elementwise for t >= 0 gives exactly 0.0; bound 0.5 = half an active feature per token, chosen between exact correctness (0.0) and the smallest systematic regression (1 full feature/token, up to k=64 for a wrong operator/tensor) so the guardrail can actually fail; measured on the TopK control, which trains identically on the baseline checkout, so the bound is baseline-achievable)"
+      old_predicate_undercount_ratio: "inferred (ratio = positive actives / all actives = 1 - negative share; expected ~0.5; bound 0.9 fails only when neg_share < 0.10, i.e. essentially no undercount for the fix to correct)"
+      bidirectionality_deviation: "inferred (random-init 3-sigma band was 0.008385 at 32000 signs; trained features may specialize directionally, so the reading bar is relaxed to 0.15 — diagnostic, non-gating)"
+      mse_ratio_abstopk_vs_topk: "pr_template (MSE Loss performance row) + paper claim (arXiv:2510.00404: AbsTopK matches or beats TopK at matched sparsity); 500k-token single-k run is directional evidence"
+      wandb_runs_logged: "user_guidance"
+      baseline_fallback: "inferred (kind: capability, baseline: none — the script still runs on a pre-change checkout without crashing: the TopK control trains unchanged through the pre-existing runner, the guardrail is measured on it for real, and every test-arm metric degrades to its worst case via the defensive import; no fabricated test-arm number is ever emitted)"
+      compute: "user_guidance (the ask is a real training run, honored end-to-end through the repo runner) at tier cpu — the harness provisions no GPU, so the token budget is 500k; timeout derived from 2 x ~122 steps x ~8-10 s/step + gpt2 download + pile warmup + held-out eval"
+      held_constant: "protocol_doc:VALIDATION.md"
+logging:
+  wandb:
+    entity: smellslikeml    # from your W&B connection
+    project: remyx-validate-saelens    # default
