@@ -70,12 +70,13 @@ benchmarks:
     held_constant:
       - "one LanguageModelSAERunnerConfig for both arms — model gpt2, hook blocks.6.hook_resid_post, dataset monology/pile-uncopyrighted (streaming), context_size 256, train_batch_size_tokens 4096, training_tokens 500k (a real optimizer-driven run at the cpu tier; the VALIDATION.md protocol scales the same config to 500M-1B tokens on GPU), device cpu — only the sae= architecture differs (topk control vs abstopk test)"
       - "k=64, d_sae=8192, d_in=768 — the PR pre-registered sweep point (VALIDATION.md)"
-      - "held-out eval on a fixed text through the trained SAEs; identical batches fed to the AbsTopK test and the TopK control; mechanism metrics computed on float32 tensors from the trained weights"
-      - "both arms log to one W&B group: the engine sets WANDB_API_KEY/ENTITY/PROJECT/RUN_GROUP, the script only splits WANDB_RUN_ID per arm (-topk / -abstopk)"
+      - "held-out eval on a fixed text through the trained SAEs; identical batches fed to the AbsTopK test and the TopK control; encoder pre-activations captured by a forward hook on the SAE's own hook_sae_acts_pre HookPoint fired during encode (add_hook -> append output -> remove) — the one capture point both encode() paths share, since sae_in @ W_enc + b_enc always routes through it; mechanism metrics computed on float32 tensors from the trained weights"
+      - "both arms log to one W&B group: the engine sets WANDB_API_KEY/ENTITY/PROJECT/RUN_GROUP and the per-arm run identity; the script never reads or sets WANDB_* itself — the repo runner's own log_to_wandb (LoggingConfig, as the reviewer's notebook commit wires it) creates one run per arm"
     avoid:
+      - "no sae.modules() scan for an nn.Linear encoder — SAELens SAEs keep W_enc/W_dec as raw Parameters and expose none; the pre-activation capture is a forward hook on the SAE's own hook_sae_acts_pre HookPoint, which both TopK and AbsTopK encode() route through (user guidance)"
       - "the scorer never reads the wandb dashboard — metrics come from the script's JSON line; the dashboard is linked evidence for the PR template, not the instrument"
       - "run_evals is not driven directly (ActivationScaler/ActivationsStore constructor signatures are outside the visible context); training itself goes through the repo runner, and the changed !=0/>0 predicates are measured on the real trained-operator outputs"
-      - "no hardcoded wandb entity or project — routing comes from the engine's env, never invented in the script"
+      - "no hardcoded wandb entity or project, no WANDB_* reads, no id/group/mode set and no second wandb.init in the script — routing and per-arm run identity come from the engine's env and the runner's own logging"
       - "no wall-clock timing and no cuda — tier: cpu provisions no GPU; the fixed seed keeps the run reproducible up to streaming-buffer order, and the exact-k/sign/predicate metrics are drift-free"
       - "no unpinned live APIs: gpt2 weights and the pile stream are fetched by the repo's own loaders (model-name/dataset-path pinned, HF-cached); no CE/KL evals, no interpretability probing"
     report:
@@ -101,20 +102,22 @@ benchmarks:
       not_measured:
         - "ce_loss_score, kl_div, explained_variance, dead-feature counts beyond the trainer's own wandb curves, throughput/wall-clock, feature-dashboard interpretability"
       caveat: "the paper's headline results (7 probing/steering tasks across 4 LLMs, matching supervised DiM) have no harness in this repo; this run supplies the template's control/test dashboards plus mechanism evidence, not the deferred parity frontier"
-      next: "run the full VALIDATION.md protocol on GPU: shared activation cache, k in {16,64,256}, TopK and JumpReLU controls, 500M-1B training tokens, run_evals l0/mse/ce_loss_score plus dead-feature count on the same W&B project"
+      next: "run the full VALIDATION.md protocol on GPU: shared activation cache, k in {16,64,256}, TopK and JumpReLU controls, 500M-1B training tokens, run_evals l0/mse/ce_loss_score plus dead-feature counts at matched L0"
     provenance:
-      suite: "synthesized (script drives the repo's own LanguageModelSAETrainingRunner entry point, pre-registered in protocol_doc:VALIDATION.md)"
-      training_protocol: "protocol_doc:VALIDATION.md (gpt2, blocks.6.hook_resid_post, monology/pile-uncopyrighted streaming, train_batch_size_tokens 4096, context_size 256, k in {16,64,256} — single point k=64 at 500k tokens chosen as the affordable real run at the cpu tier)"
-      wandb: "user_guidance (reviewer: real training run logging to W&B) + pr_template ('Please links to wandb dashboards with a control and test group')"
-      l0_deficit_from_k: "inferred (claim arithmetic: exactly-k scatter of signed values; deficit > 0 only if a selected pre-activation is exactly 0.0)"
-      relu_topk_l0_predicate_delta: "inferred (claim arithmetic: (t>0) == (t!=0) elementwise for t >= 0 gives exactly 0.0; bound 0.5 = half an active feature per token, chosen between exact correctness (0.0) and the smallest systematic regression (1 full feature/token, up to k=64 for a wrong operator/tensor) so the guardrail can actually fail; measured on the TopK control, which trains identically on the baseline checkout, so the bound is baseline-achievable)"
-      old_predicate_undercount_ratio: "inferred (ratio = positive actives / all actives = 1 - negative share; expected ~0.5; bound 0.9 fails only when neg_share < 0.10, i.e. essentially no undercount for the fix to correct)"
-      bidirectionality_deviation: "inferred (random-init 3-sigma band was 0.008385 at 32000 signs; trained features may specialize directionally, so the reading bar is relaxed to 0.15 — diagnostic, non-gating)"
-      mse_ratio_abstopk_vs_topk: "pr_template (MSE Loss performance row) + paper claim (arXiv:2510.00404: AbsTopK matches or beats TopK at matched sparsity); 500k-token single-k run is directional evidence"
-      wandb_runs_logged: "user_guidance"
-      baseline_fallback: "inferred (kind: capability, baseline: none — the script still runs on a pre-change checkout without crashing: the TopK control trains unchanged through the pre-existing runner, the guardrail is measured on it for real, and every test-arm metric degrades to its worst case via the defensive import; no fabricated test-arm number is ever emitted)"
-      compute: "user_guidance (the ask is a real training run, honored end-to-end through the repo runner) at tier cpu — the harness provisions no GPU, so the token budget is 500k; timeout derived from 2 x ~122 steps x ~8-10 s/step + gpt2 download + pile warmup + held-out eval"
+      l0_deficit_from_k: "claim_analysis"
+      relu_topk_l0_predicate_delta: "claim_analysis"
+      bidirectionality_deviation: "claim_analysis"
+      old_predicate_undercount_ratio: "claim_analysis"
+      magnitude_selection_exact: "claim_analysis"
+      sign_preservation_exact: "claim_analysis"
+      mse_ratio_abstopk_vs_topk: "claim_analysis"
+      abstopk_registered: "claim_analysis"
+      wandb_runs_logged: "maintainer_comment:@salma-remyx"
+      pre_activation_capture: "user_guidance"
       held_constant: "protocol_doc:VALIDATION.md"
+      suite: "synthesized"
+      compute: "inferred"
+      requires: "maintainer_comment:@salma-remyx"
 logging:
   wandb:
     entity: smellslikeml    # from your W&B connection
