@@ -58,52 +58,6 @@ from .config import (
     LoggingConfig,
     PretokenizeRunnerConfig,
 )
-
-# Backwards/forwards-compat: some callers (e.g. benchmark notebooks) pass the
-# logging config under the legacy keyword `logging`; map it onto the `logger`
-# field so construction proceeds instead of raising TypeError.
-_LanguageModelSAERunnerConfig_orig_init = LanguageModelSAERunnerConfig.__init__
-
-
-def _LanguageModelSAERunnerConfig_init(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-    if "logging" in kwargs:
-        kwargs.setdefault("logger", kwargs.pop("logging"))
-    _LanguageModelSAERunnerConfig_orig_init(self, *args, **kwargs)
-
-
-LanguageModelSAERunnerConfig.__init__ = _LanguageModelSAERunnerConfig_init
-
-# Compat: newer transformer_lens calls forward hooks as hook(output, hook=hook_point);
-# some callers (e.g. benchmark notebooks) define hooks that only take the
-# activation tensor. Wrap HookPoint.add_hook so such hooks still work instead
-# of raising TypeError on the unexpected `hook` keyword.
-import inspect as _inspect
-
-from transformer_lens.hook_points import HookPoint as _HookPoint
-
-_HookPoint_orig_add_hook = _HookPoint.add_hook
-
-
-def _HookPoint_add_hook(self, hook, *args, **kwargs):  # type: ignore[no-untyped-def]
-    try:
-        _inspect.signature(hook).bind(object(), hook=self)
-    except TypeError:
-        _orig_hook = hook
-
-        def hook(output, **_kwargs):  # type: ignore[no-untyped-def]
-            return _orig_hook(output)
-
-    return _HookPoint_orig_add_hook(self, hook, *args, **kwargs)
-
-
-_HookPoint.add_hook = _HookPoint_add_hook
-
-# Compat: the notebook-style API HookPoint.clear_hooks() was removed in newer
-# transformer_lens; the equivalent is reset() (alias remove_all_hooks()).
-if not hasattr(_HookPoint, "clear_hooks"):
-    _clear = getattr(_HookPoint, "remove_all_hooks", None) or _HookPoint.reset
-    _HookPoint.clear_hooks = _clear
-
 from .evals import run_evals
 from .llm_sae_training_runner import LanguageModelSAETrainingRunner, SAETrainingRunner
 from .loading.pretrained_sae_loaders import (
