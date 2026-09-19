@@ -98,6 +98,12 @@ def _HookPoint_add_hook(self, hook, *args, **kwargs):  # type: ignore[no-untyped
 
 _HookPoint.add_hook = _HookPoint_add_hook
 
+# Compat: the notebook-style API HookPoint.clear_hooks() was removed in newer
+# transformer_lens; the equivalent is reset() (alias remove_all_hooks()).
+if not hasattr(_HookPoint, "clear_hooks"):
+    _clear = getattr(_HookPoint, "remove_all_hooks", None) or _HookPoint.reset
+    _HookPoint.clear_hooks = _clear
+
 from .evals import run_evals
 from .llm_sae_training_runner import LanguageModelSAETrainingRunner, SAETrainingRunner
 from .loading.pretrained_sae_loaders import (
