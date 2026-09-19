@@ -1008,6 +1008,14 @@ class TrainingSAE(SAE[T_TRAINING_SAE_CONFIG], ABC):
         """Calculate architecture-specific auxiliary loss terms."""
         ...
 
+    def make_decoder_weights_and_grad_unit_norm(self) -> None:
+        """
+        Enforce decoder constraints after gradients are computed and before the
+        optimizer step (called by the trainer every step). No-op by default;
+        architectures that constrain the decoder (e.g. keeping W_dec rows
+        unit-norm) override this.
+        """
+
     def training_forward_pass(
         self,
         step_input: TrainStepInput,

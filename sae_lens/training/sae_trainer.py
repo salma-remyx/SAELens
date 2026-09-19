@@ -362,6 +362,9 @@ class SAETrainer(Generic[T_TRAINING_SAE, T_TRAINING_SAE_CONFIG]):
         train_step_output.loss.backward()
         # TODO: Work out if grad norm clipping should be in config / how to test it.
         torch.nn.utils.clip_grad_norm_(sae.parameters(), 1.0)
+        # Per-step decoder constraint hook (e.g. unit-norm decoders); no-op unless
+        # the SAE architecture overrides it.
+        sae.make_decoder_weights_and_grad_unit_norm()
         self.optimizer.step()
 
         self.optimizer.zero_grad()

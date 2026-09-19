@@ -149,6 +149,7 @@ class TrainingSAEConfigDict(TypedDict, total=False):
     rescale_acts_by_decoder_norm: bool  # For TopK
     matryoshka_widths: list[int]  # For MatryoshkaBatchTopK
     afa_loss_coefficient: float  # For TopAFA
+    top_k_aux: int  # For TopAFA
     residual_threshold: float  # for MatchingPursuitSAE
     max_iterations: int | None  # for MatchingPursuitSAE
     stop_on_duplicate_support: bool  # for MatchingPursuitSAE
@@ -632,7 +633,6 @@ def build_topafa_runner_cfg(
         "normalize_activations": "none",
         "decoder_init_norm": 0.1,
         "apply_b_dec_to_input": False,
-        "afa_loss_coefficient": 1 / 16,
     }
     # Ensure sae config kwargs that are architecture-specific are passed through
     temp_sae_overrides = {
