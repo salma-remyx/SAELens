@@ -58,6 +58,21 @@ from .config import (
     LoggingConfig,
     PretokenizeRunnerConfig,
 )
+
+# Backwards/forwards-compat: some callers (e.g. benchmark notebooks) pass the
+# logging config under the legacy keyword `logging`; map it onto the `logger`
+# field so construction proceeds instead of raising TypeError.
+_LanguageModelSAERunnerConfig_orig_init = LanguageModelSAERunnerConfig.__init__
+
+
+def _LanguageModelSAERunnerConfig_init(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+    if "logging" in kwargs:
+        kwargs.setdefault("logger", kwargs.pop("logging"))
+    _LanguageModelSAERunnerConfig_orig_init(self, *args, **kwargs)
+
+
+LanguageModelSAERunnerConfig.__init__ = _LanguageModelSAERunnerConfig_init
+
 from .evals import run_evals
 from .llm_sae_training_runner import LanguageModelSAETrainingRunner, SAETrainingRunner
 from .loading.pretrained_sae_loaders import (
