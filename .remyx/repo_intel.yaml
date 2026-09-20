@@ -1,0 +1,16 @@
+schema_version: 1
+fork: salma-remyx/SAELens
+observed_landing_zones:
+- path: benchmark/
+  shape_tags:
+  - unclassified
+  confirmed_by:
+  - arxiv: 2609.10299v1
+    mode: ''
+    call_site_specifics: ''
+    branch: a-dominant-diffuse-phase-in-the-sparse-autoencoder-phase-dia
+    timestamp: '2026-09-20T10:58:43Z'
+  last_observed: '2026-09-20T10:58:43Z'
+rejected_shapes: []
+coordination_signals: []
+last_updated: '2026-09-20T10:58:43Z'
