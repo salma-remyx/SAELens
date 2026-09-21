@@ -11,6 +11,16 @@ observed_landing_zones:
     branch: a-dominant-diffuse-phase-in-the-sparse-autoencoder-phase-dia
     timestamp: '2026-09-20T10:58:43Z'
   last_observed: '2026-09-20T10:58:43Z'
+- path: sae_lens/training/
+  shape_tags:
+  - unclassified
+  confirmed_by:
+  - arxiv: 2411.01220v2
+    mode: ''
+    call_site_specifics: ''
+    branch: enhancing-neural-network-interpretability-with-feature-align
+    timestamp: '2026-09-21T12:27:20Z'
+  last_observed: '2026-09-21T12:27:20Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-20T10:58:43Z'
+last_updated: '2026-09-21T12:27:20Z'
