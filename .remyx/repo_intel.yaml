@@ -21,6 +21,16 @@ observed_landing_zones:
     branch: enhancing-neural-network-interpretability-with-feature-align
     timestamp: '2026-09-21T12:27:20Z'
   last_observed: '2026-09-21T12:27:20Z'
+- path: sae_lens/analysis/
+  shape_tags:
+  - unclassified
+  confirmed_by:
+  - arxiv: 2609.09902v1
+    mode: ''
+    call_site_specifics: ''
+    branch: contrastive-projection-reading-transformer-internals-by-diff
+    timestamp: '2026-09-22T11:24:44Z'
+  last_observed: '2026-09-22T11:24:44Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-21T12:27:20Z'
+last_updated: '2026-09-22T11:24:44Z'
