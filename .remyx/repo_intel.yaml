@@ -40,7 +40,12 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: local-sparsity-enables-unsupervised-llm-safety-detection
     timestamp: '2026-09-24T11:32:02Z'
-  last_observed: '2026-09-24T11:32:02Z'
+  - arxiv: 2607.24645v1
+    mode: ''
+    call_site_specifics: ''
+    branch: sparse-autoencoders-encode-both-concepts-and-functions-the-d
+    timestamp: '2026-09-25T11:35:48Z'
+  last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-24T11:32:02Z'
+last_updated: '2026-09-25T11:35:48Z'
