@@ -15,7 +15,12 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: saescientist-bench-can-ai-agents-conduct-autonomous-sae-inte
     timestamp: '2026-09-23T11:13:39Z'
-  last_observed: '2026-09-23T11:13:39Z'
+  - arxiv: 2608.25941v1
+    mode: ''
+    call_site_specifics: ''
+    branch: when-pruning-meets-interpretability-preserving-sparse-autoen
+    timestamp: '2026-09-26T11:11:20Z'
+  last_observed: '2026-09-26T11:11:20Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -48,4 +53,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-25T11:35:48Z'
+last_updated: '2026-09-26T11:11:20Z'
