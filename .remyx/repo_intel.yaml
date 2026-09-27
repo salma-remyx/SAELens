@@ -20,7 +20,14 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: when-pruning-meets-interpretability-preserving-sparse-autoen
     timestamp: '2026-09-26T11:11:20Z'
-  last_observed: '2026-09-26T11:11:20Z'
+  - arxiv: 2609.24440v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: benchmark/test_typical_analysis_workflow.py::test_typical_feature_correspondence_workflow
+      (written into a previously empty placeholder file in this diff); the durable
+      call surface is the public import
+    branch: comparing-latent-concept-formation-in-state-space-models-and
+    timestamp: '2026-09-27T11:49:29Z'
+  last_observed: '2026-09-27T11:49:29Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -53,4 +60,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-26T11:11:20Z'
+last_updated: '2026-09-27T11:49:29Z'
