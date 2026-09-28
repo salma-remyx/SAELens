@@ -3,7 +3,7 @@ fork: salma-remyx/SAELens
 observed_landing_zones:
 - path: benchmark/
   shape_tags:
-  - unclassified
+  - library-shape-public-api
   confirmed_by:
   - arxiv: 2609.10299v1
     mode: ''
@@ -27,7 +27,14 @@ observed_landing_zones:
       call surface is the public import
     branch: comparing-latent-concept-formation-in-state-space-models-and
     timestamp: '2026-09-27T11:49:29Z'
-  last_observed: '2026-09-27T11:49:29Z'
+  - arxiv: 2608.11197v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: benchmark/test_typical_analysis_workflow.py (the repo's pytest-run
+      benchmark workflow, which fills a previously-empty placeholder file committed
+      empty at 6.49.2); no pre-existing library code path inv
+    branch: beyond-a-bag-of-features-set-level-instability-in-sparse-aut
+    timestamp: '2026-09-28T13:24:17Z'
+  last_observed: '2026-09-28T13:24:17Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -60,4 +67,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-27T11:49:29Z'
+last_updated: '2026-09-28T13:24:17Z'
