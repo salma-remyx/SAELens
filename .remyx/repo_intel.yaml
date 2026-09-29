@@ -34,7 +34,12 @@ observed_landing_zones:
       empty at 6.49.2); no pre-existing library code path inv
     branch: beyond-a-bag-of-features-set-level-instability-in-sparse-aut
     timestamp: '2026-09-28T13:24:17Z'
-  last_observed: '2026-09-28T13:24:17Z'
+  - arxiv: 2608.04904v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: (none)
+    branch: strengthening-target-language-features-sae-based-steering-fo
+    timestamp: '2026-09-29T13:06:51Z'
+  last_observed: '2026-09-29T13:06:51Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -67,4 +72,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-28T13:24:17Z'
+last_updated: '2026-09-29T13:06:51Z'
