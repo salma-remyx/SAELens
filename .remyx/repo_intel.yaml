@@ -45,7 +45,14 @@ observed_landing_zones:
     call_site_specifics: (none)
     branch: sample-conditioned-representation-selection-for-audio-few-sh
     timestamp: '2026-09-30T12:43:36Z'
-  last_observed: '2026-09-30T12:43:36Z'
+  - arxiv: 2609.35521v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: "(none) \u2014 no pre-existing entry point invokes it; the\
+      \ intended path is the public registry extension point (register_sae_training_class(\"\
+      chunk\", ...), after which LanguageModelSAETrainingRunner's confi"
+    branch: beyond-token-scale-chunk-level-sparse-autoencoders-for-relia
+    timestamp: '2026-10-01T13:13:17Z'
+  last_observed: '2026-10-01T13:13:17Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -78,4 +85,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-09-30T12:43:36Z'
+last_updated: '2026-10-01T13:13:17Z'
