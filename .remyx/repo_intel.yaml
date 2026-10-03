@@ -69,7 +69,12 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: enhancing-neural-network-interpretability-with-feature-align
     timestamp: '2026-09-21T12:27:20Z'
-  last_observed: '2026-09-21T12:27:20Z'
+  - arxiv: 2410.21508v2
+    mode: ''
+    call_site_specifics: ''
+    branch: group-sae-efficient-training-of-sparse-autoencoders-for-larg
+    timestamp: '2026-10-03T11:31:35Z'
+  last_observed: '2026-10-03T11:31:35Z'
 - path: sae_lens/analysis/
   shape_tags:
   - unclassified
@@ -92,4 +97,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-02T12:42:57Z'
+last_updated: '2026-10-03T11:31:35Z'
