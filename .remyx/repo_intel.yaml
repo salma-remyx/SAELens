@@ -64,7 +64,12 @@ observed_landing_zones:
     call_site_specifics: (none)
     branch: saebench-a-comprehensive-benchmark-for-sparse-autoencoders-i
     timestamp: '2026-10-04T12:24:35Z'
-  last_observed: '2026-10-04T12:24:35Z'
+  - arxiv: 2609.35707v1
+    mode: ''
+    call_site_specifics: ''
+    branch: scan-bench-evaluating-scaling-analysis-methodology
+    timestamp: '2026-10-05T14:03:00Z'
+  last_observed: '2026-10-05T14:03:00Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -102,4 +107,4 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-04T12:24:35Z'
+last_updated: '2026-10-05T14:03:00Z'
