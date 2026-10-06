@@ -105,6 +105,16 @@ observed_landing_zones:
     branch: sparse-autoencoders-encode-both-concepts-and-functions-the-d
     timestamp: '2026-09-25T11:35:48Z'
   last_observed: '2026-09-25T11:35:48Z'
+- path: sae_lens/saes/
+  shape_tags:
+  - unclassified
+  confirmed_by:
+  - arxiv: 2509.11154v1
+    mode: ''
+    call_site_specifics: ''
+    branch: feature-space-topology-control-via-hopkins-loss
+    timestamp: '2026-10-06T13:20:43Z'
+  last_observed: '2026-10-06T13:20:43Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-05T14:03:00Z'
+last_updated: '2026-10-06T13:20:43Z'
