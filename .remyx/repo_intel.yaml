@@ -69,7 +69,14 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: scan-bench-evaluating-scaling-analysis-methodology
     timestamp: '2026-10-05T14:03:00Z'
-  last_observed: '2026-10-05T14:03:00Z'
+  - arxiv: 2609.01322v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: benchmark/test_typical_analysis_workflow.py::test_typical_confounder_adjustment_workflow
+      (pre-existing empty benchmark placeholder, filled per spec); otherwise consumed
+      as library API via `from sae_le
+    branch: exploring-sparse-autoencoders-in-text-based-causal-confoundi
+    timestamp: '2026-10-08T13:14:39Z'
+  last_observed: '2026-10-08T13:14:39Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -117,4 +124,4 @@ observed_landing_zones:
   last_observed: '2026-10-06T13:20:43Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-06T13:20:43Z'
+last_updated: '2026-10-08T13:14:39Z'
