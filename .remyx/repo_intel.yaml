@@ -74,7 +74,14 @@ observed_landing_zones:
       as library API via `from sae_le
     branch: exploring-sparse-autoencoders-in-text-based-causal-confoundi
     timestamp: '2026-10-08T13:14:39Z'
-  last_observed: '2026-10-14T11:32:07Z'
+  - arxiv: 2610.03640v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: "(none) \u2014 library API: external researcher code imports\
+      \ sae_lens.training.scale_diagnostics and merges its log dicts into SAETrainer's\
+      \ build_train_step_log_dict output at the logging step; the only in-"
+    branch: broken-scale-symmetries-in-undercomplete-linear-autoencoders
+    timestamp: '2026-10-15T11:39:15Z'
+  last_observed: '2026-10-15T11:39:15Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -122,4 +129,4 @@ observed_landing_zones:
   last_observed: '2026-10-06T13:20:43Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-14T11:32:07Z'
+last_updated: '2026-10-15T11:39:15Z'
