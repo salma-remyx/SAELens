@@ -32,6 +32,12 @@ from .standard_sae import (
     StandardTrainingSAEConfig,
 )
 from .temporal_sae import TemporalSAE, TemporalSAEConfig
+from .topafa_sae import (
+    TopAFASAE,
+    TopAFASAEConfig,
+    TopAFATrainingSAE,
+    TopAFATrainingSAEConfig,
+)
 from .topk_sae import (
     TopKSAE,
     TopKSAEConfig,
@@ -88,4 +94,8 @@ __all__ = [
     "MatchingPursuitTrainingSAE",
     "MatchingPursuitSAEConfig",
     "MatchingPursuitTrainingSAEConfig",
+    "TopAFASAE",
+    "TopAFASAEConfig",
+    "TopAFATrainingSAE",
+    "TopAFATrainingSAEConfig",
 ]
