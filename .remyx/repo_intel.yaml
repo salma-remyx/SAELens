@@ -9,8 +9,8 @@ observed_landing_zones:
   - arxiv: 2609.10299v1
     mode: ''
     call_site_specifics: ''
-    branch: a-dominant-diffuse-phase-in-the-sparse-autoencoder-phase-dia
-    timestamp: '2026-09-20T10:58:43Z'
+    branch: a-dominant-diffuse-phase-in-the-sparse-autoencoder-phase-dia-v2
+    timestamp: '2026-10-18T10:49:23Z'
   - arxiv: 2609.09113v1
     mode: ''
     call_site_specifics: ''
@@ -81,7 +81,7 @@ observed_landing_zones:
       \ build_train_step_log_dict output at the logging step; the only in-"
     branch: broken-scale-symmetries-in-undercomplete-linear-autoencoders
     timestamp: '2026-10-15T11:39:15Z'
-  last_observed: '2026-10-15T11:39:15Z'
+  last_observed: '2026-10-18T10:49:23Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -134,4 +134,4 @@ observed_landing_zones:
   last_observed: '2026-10-17T10:48:10Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-17T10:48:10Z'
+last_updated: '2026-10-18T10:49:23Z'
