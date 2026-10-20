@@ -124,7 +124,8 @@ observed_landing_zones:
   last_observed: '2026-09-25T11:35:48Z'
 - path: sae_lens/saes/
   shape_tags:
-  - unclassified
+  - library-shape-public-api
+  - registry-add
   confirmed_by:
   - arxiv: 2509.11154v1
     mode: ''
@@ -136,7 +137,14 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: how-sparse-probability-maps-shape-mixture-of-experts-routing
     timestamp: '2026-10-17T10:48:10Z'
-  last_observed: '2026-10-17T10:48:10Z'
+  - arxiv: 2610.23801v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: 'Pre-existing registry-dispatched entry points: the ''sparse_coding''
+      architecture registered via register_sae_class/register_sae_training_class in
+      sae_lens/__init__.py, reached by MultiSAETrainingRunner'
+    branch: beyond-saes-consistent-concept-discovery-with-sparse-coding
+    timestamp: '2026-10-20T11:54:54Z'
+  last_observed: '2026-10-20T11:54:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-19T12:34:32Z'
+last_updated: '2026-10-20T11:54:54Z'
