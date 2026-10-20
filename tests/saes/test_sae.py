@@ -278,10 +278,12 @@ def test_TrainingSAE_fold_activation_norm_scaling_factor_all_architectures(
     folded_features = sae.encode(inputs / 2.0)
 
     assert_close(folded_outputs, original_outputs)
-    if architecture in {"topk", "batchtopk", "matryoshka_batchtopk"}:
+    if architecture in {"topk", "batchtopk", "matryoshka_batchtopk", "sparse_coding"}:
         # Due to how rescale_acts_by_decoder_norm works in TopKSAEs, it's equivalent to
         # folding the W_dec norm after folding the activation norm scaling factor.
         # this is fine, since we just care about the ouputs being the same.
+        # Sparse coding SAEs are tied (W_dec is the dictionary), so only b_dec and
+        # the l1 penalty are folded and the coefficients rescale with the input.
         assert_close(folded_features, original_features / 2.0)
     else:
         assert_close(folded_features, original_features)
@@ -372,7 +374,7 @@ def test_training_sae_fold_w_dec_norm_all_architectures(architecture: str):
     assert sae.W_dec.norm(dim=-1).mean().item() != pytest.approx(1.0, abs=1e-6)
     sae2 = deepcopy(sae)
 
-    if architecture in {"matching_pursuit"}:
+    if architecture in {"matching_pursuit", "sparse_coding"}:
         with pytest.raises(NotImplementedError):
             sae2.fold_W_dec_norm()
         return
@@ -532,7 +534,7 @@ def test_training_fold_W_dec_norm_does_not_produce_nan_with_zero_norm_decoder(
 
     # Call fold_W_dec_norm - this should not produce NaN values
 
-    if architecture in {"matching_pursuit"}:
+    if architecture in {"matching_pursuit", "sparse_coding"}:
         with pytest.raises(NotImplementedError):
             sae.fold_W_dec_norm()
         return

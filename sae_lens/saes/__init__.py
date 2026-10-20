@@ -25,6 +25,12 @@ from .matryoshka_batchtopk_sae import (
     MatryoshkaBatchTopKTrainingSAEConfig,
 )
 from .sae import SAE, SAEConfig, TrainingSAE, TrainingSAEConfig
+from .sparse_coding_sae import (
+    SparseCodingSAE,
+    SparseCodingSAEConfig,
+    SparseCodingTrainingSAE,
+    SparseCodingTrainingSAEConfig,
+)
 from .standard_sae import (
     StandardSAE,
     StandardSAEConfig,
@@ -88,4 +94,8 @@ __all__ = [
     "MatchingPursuitTrainingSAE",
     "MatchingPursuitSAEConfig",
     "MatchingPursuitTrainingSAEConfig",
+    "SparseCodingSAE",
+    "SparseCodingTrainingSAE",
+    "SparseCodingSAEConfig",
+    "SparseCodingTrainingSAEConfig",
 ]

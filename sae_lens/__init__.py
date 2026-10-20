@@ -30,6 +30,10 @@ from sae_lens.saes import (
     SAEConfig,
     SkipTranscoder,
     SkipTranscoderConfig,
+    SparseCodingSAE,
+    SparseCodingSAEConfig,
+    SparseCodingTrainingSAE,
+    SparseCodingTrainingSAEConfig,
     StandardSAE,
     StandardSAEConfig,
     StandardTrainingSAE,
@@ -128,6 +132,10 @@ __all__ = [
     "MatchingPursuitTrainingSAE",
     "MatchingPursuitSAEConfig",
     "MatchingPursuitTrainingSAEConfig",
+    "SparseCodingSAE",
+    "SparseCodingTrainingSAE",
+    "SparseCodingSAEConfig",
+    "SparseCodingTrainingSAEConfig",
     "MultiSAEEvaluator",
     "MultiSAETrainingRunner",
     "MultiSAETrainingRunnerConfig",
@@ -173,4 +181,8 @@ register_sae_class("temporal", TemporalSAE, TemporalSAEConfig)
 register_sae_class("matching_pursuit", MatchingPursuitSAE, MatchingPursuitSAEConfig)
 register_sae_training_class(
     "matching_pursuit", MatchingPursuitTrainingSAE, MatchingPursuitTrainingSAEConfig
+)
+register_sae_class("sparse_coding", SparseCodingSAE, SparseCodingSAEConfig)
+register_sae_training_class(
+    "sparse_coding", SparseCodingTrainingSAE, SparseCodingTrainingSAEConfig
 )

@@ -24,6 +24,10 @@ from sae_lens.saes.sae import (
     TrainStepInput,
     TrainStepOutput,
 )
+from sae_lens.saes.sparse_coding_sae import (
+    SparseCodingSAEConfig,
+    SparseCodingTrainingSAEConfig,
+)
 from sae_lens.saes.standard_sae import StandardSAEConfig, StandardTrainingSAEConfig
 from sae_lens.saes.temporal_sae import TemporalSAEConfig
 from sae_lens.saes.topk_sae import TopKSAEConfig, TopKTrainingSAEConfig
@@ -38,6 +42,7 @@ ALL_ARCHITECTURES = [
     "topk",
     "temporal",
     "matching_pursuit",
+    "sparse_coding",
 ]
 ALL_FOLDABLE_ARCHITECTURES = [
     "standard",
@@ -522,6 +527,57 @@ def build_matching_pursuit_sae_training_cfg(
     return build_matching_pursuit_runner_cfg(**kwargs).sae  # type: ignore
 
 
+# --- Sparse Coding SAE Builder ---
+
+
+def build_sparse_coding_runner_cfg(
+    **kwargs: Any,
+) -> LanguageModelSAERunnerConfig[SparseCodingTrainingSAEConfig]:
+    """Helper to create a mock instance for Sparse Coding SAE."""
+    default_sae_config: TrainingSAEConfigDict = {
+        "d_in": 64,
+        "d_sae": 256,
+        "dtype": "float32",
+        "device": "cpu",
+        "normalize_activations": "none",
+        "decoder_init_norm": 1.0,
+        "apply_b_dec_to_input": True,
+        "sparsity_coefficient": 0.1,
+    }
+    # Ensure sae config params overridden via kwargs are applied
+    temp_sae_overrides = {
+        k: v for k, v in kwargs.items() if k in TrainingSAEConfigDict.__annotations__
+    }
+    temp_sae_config = {**default_sae_config, **temp_sae_overrides}
+    # Update the default config *before* passing it to _build_runner_config
+    final_default_sae_config = cast(dict[str, Any], temp_sae_config)
+
+    runner_cfg = _build_runner_config(
+        SparseCodingTrainingSAEConfig,
+        final_default_sae_config,
+        **kwargs,
+    )
+    _update_sae_metadata(runner_cfg)
+    return runner_cfg
+
+
+def build_sparse_coding_sae_cfg(**kwargs: Any) -> SparseCodingSAEConfig:
+    default_sae_config: SAEConfigDict = {
+        "d_in": 64,
+        "d_sae": 256,
+        "dtype": "float32",
+        "device": "cpu",
+        "normalize_activations": "none",
+    }
+    return SparseCodingSAEConfig(**{**default_sae_config, **kwargs})  # type: ignore
+
+
+def build_sparse_coding_sae_training_cfg(
+    **kwargs: Any,
+) -> SparseCodingTrainingSAEConfig:
+    return build_sparse_coding_runner_cfg(**kwargs).sae  # type: ignore
+
+
 # --- Temporal SAE Builder ---
 def build_temporal_sae_cfg(**kwargs: Any) -> TemporalSAEConfig:
     default_sae_config: dict[str, Any] = {
@@ -754,6 +810,7 @@ SAE_TRAINING_CONFIG_BUILDERS = {
     "batchtopk": build_batchtopk_sae_training_cfg,
     "matryoshka_batchtopk": build_matryoshka_batchtopk_sae_training_cfg,
     "matching_pursuit": build_matching_pursuit_sae_training_cfg,
+    "sparse_coding": build_sparse_coding_sae_training_cfg,
 }
 
 SAE_CONFIG_BUILDERS = {
@@ -763,6 +820,7 @@ SAE_CONFIG_BUILDERS = {
     "topk": build_topk_sae_cfg,
     "temporal": build_temporal_sae_cfg,
     "matching_pursuit": build_matching_pursuit_sae_cfg,
+    "sparse_coding": build_sparse_coding_sae_cfg,
 }
 
 SAE_RUNNER_CONFIG_BUILDERS = {
@@ -773,4 +831,5 @@ SAE_RUNNER_CONFIG_BUILDERS = {
     "batchtopk": build_batchtopk_runner_cfg,
     "matryoshka_batchtopk": build_matryoshka_batchtopk_runner_cfg,
     "matching_pursuit": build_matching_pursuit_runner_cfg,
+    "sparse_coding": build_sparse_coding_runner_cfg,
 }
