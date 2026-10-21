@@ -145,6 +145,18 @@ observed_landing_zones:
     branch: beyond-saes-consistent-concept-discovery-with-sparse-coding
     timestamp: '2026-10-20T11:54:54Z'
   last_observed: '2026-10-20T11:54:54Z'
+- path: sae_lens/
+  shape_tags:
+  - library-shape-public-api
+  confirmed_by:
+  - arxiv: 2610.22256v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: CacheActivationsRunner (schema construction at sae_lens/cache_activations_runner.py:86
+      and the shard-dict write loop) plus the ActivationsStore cached-activation read
+      path (sae_lens/training/activatio
+    branch: bitsparse-compact-activation-storage-for-relu-feed-forward-n
+    timestamp: '2026-10-21T11:43:54Z'
+  last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-20T11:54:54Z'
+last_updated: '2026-10-21T11:43:54Z'
