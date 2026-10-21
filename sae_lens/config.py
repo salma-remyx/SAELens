@@ -25,6 +25,10 @@ from sae_lens.constants import (
 )
 from sae_lens.registry import get_sae_training_class
 from sae_lens.saes.sae import TrainingSAEConfig
+from sae_lens.training.sparse_activation_codec import (
+    ACTIVATION_STORAGE_FORMATS,
+    DENSE_ACTIVATION_FORMAT,
+)
 from sae_lens.util import str_to_dtype
 
 if TYPE_CHECKING:
@@ -522,6 +526,9 @@ class CacheActivationsRunnerConfig:
         dtype (str): Datatype of activations to be stored.
         device (str): The device for the model.
         buffer_size_gb (float): The buffer size in GB. This should be < 2GB.
+        activation_storage_format (str): Format used to store activations in the cache. "dense" stores full
+            activation tensors. "sparse_bitmask" stores a packed nonzero bitmask plus only the nonzero
+            values, which is lossless and shrinks the cache for sparse (ReLU/JumpReLU-family) hooks.
         hf_repo_id (str, optional): The Hugging Face repository id to save the activations to.
         hf_num_shards (int, optional): The number of shards to save the activations to.
         hf_revision (str): The revision to save the activations to.
@@ -553,6 +560,7 @@ class CacheActivationsRunnerConfig:
     dtype: str = "float32"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     buffer_size_gb: float = 2.0  # HF datasets writer have problems with shards > 2GB
+    activation_storage_format: str = DENSE_ACTIVATION_FORMAT
 
     # Huggingface Integration
     hf_repo_id: str | None = None
@@ -575,6 +583,11 @@ class CacheActivationsRunnerConfig:
     use_chat_formatting: bool = False
 
     def __post_init__(self):
+        if self.activation_storage_format not in ACTIVATION_STORAGE_FORMATS:
+            raise ValueError(
+                f"activation_storage_format must be one of {ACTIVATION_STORAGE_FORMATS}, "
+                f"got {self.activation_storage_format}."
+            )
         if self.use_chat_formatting and self.context_size == -1:
             raise ValueError(
                 "context_size must be explicitly set when use_chat_formatting is True."

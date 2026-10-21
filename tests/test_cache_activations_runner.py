@@ -21,6 +21,11 @@ from sae_lens.constants import DTYPE_MAP
 from sae_lens.load_model import load_model
 from sae_lens.saes.standard_sae import StandardTrainingSAEConfig
 from sae_lens.training.activations_store import ActivationsStore
+from sae_lens.training.sparse_activation_codec import (
+    bitmask_column,
+    decode_sparse_rows,
+    values_column,
+)
 from tests.helpers import assert_close
 
 
@@ -506,3 +511,57 @@ def test_cache_activations_runner_shuffling(tmp_path: Path):
             torch.from_numpy(unshuffled_acts_array[i]),
             torch.from_numpy(shuffled_acts_array[shuffled_idx]),
         )
+
+
+def test_cache_activations_runner_sparse_format_matches_ground_truth(tmp_path: Path):
+    """
+    Caches activations with the sparse_bitmask format and checks the decoded
+    cache against model.run_with_cache, then checks the training-time read path
+    (ActivationsStore) decodes the identical tensors.
+    """
+    cfg = _default_cfg(tmp_path, activation_storage_format="sparse_bitmask")
+    runner = CacheActivationsRunner(cfg)
+    sparse_dataset = runner.run()
+
+    assert sparse_dataset.column_names == [
+        bitmask_column(cfg.hook_name),
+        values_column(cfg.hook_name),
+        "token_ids",
+    ]
+
+    decoded = decode_sparse_rows(
+        sparse_dataset[bitmask_column(cfg.hook_name)],
+        sparse_dataset[values_column(cfg.hook_name)],
+        cfg.context_size,
+        cfg.d_in,
+        torch.float32,
+    )
+
+    model = HookedTransformer.from_pretrained(cfg.model_name, device=cfg.device)
+    token_dataset: Dataset = load_dataset(
+        cfg.dataset_path, split=f"train[:{cfg.n_seq_in_dataset}]"
+    )  # type: ignore
+    token_dataset.set_format("torch", device=cfg.device)
+
+    ground_truth_acts = []
+    for i in trange(0, cfg.n_seq_in_dataset, cfg.model_batch_size):
+        tokens = token_dataset[i : i + cfg.model_batch_size]["input_ids"][
+            :, : cfg.context_size
+        ]
+        _, layerwise_activations = model.run_with_cache(
+            tokens,
+            names_filter=[cfg.hook_name],
+        )
+        ground_truth_acts.append(layerwise_activations[cfg.hook_name])
+
+    ground_truth_acts = torch.cat(ground_truth_acts, dim=0).cpu()
+    assert_close(decoded, ground_truth_acts, rtol=1e-3, atol=5e-2)
+
+    activations_store = ActivationsStore.from_config(runner.model, cfg)
+    stored_acts = []
+    for _ in range(cfg.n_buffers * cfg.n_batches_in_buffer):
+        acts, _token_ids = activations_store.get_raw_llm_batch()
+        stored_acts.append(acts)
+    stored_acts = torch.cat(stored_acts, dim=0).cpu()
+
+    assert torch.equal(stored_acts, decoded.reshape(-1, cfg.d_in))

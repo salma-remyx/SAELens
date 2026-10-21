@@ -16,6 +16,13 @@ from sae_lens import logger
 from sae_lens.config import CacheActivationsRunnerConfig
 from sae_lens.load_model import load_model
 from sae_lens.training.activations_store import ActivationsStore
+from sae_lens.training.sparse_activation_codec import (
+    SPARSE_ACTIVATION_FORMAT,
+    bitmask_column,
+    bitmask_num_bytes,
+    encode_sparse_rows,
+    values_column,
+)
 from sae_lens.util import str_to_dtype
 
 
@@ -76,12 +83,20 @@ class CacheActivationsRunner:
         self.context_size = self._get_sliced_context_size(
             self.cfg.context_size, self.cfg.seqpos_slice
         )
-        features_dict: dict[str, Array2D | Sequence] = {
-            hook_name: Array2D(
-                shape=(self.context_size, self.cfg.d_in), dtype=self.cfg.dtype
-            )
-            for hook_name in [self.cfg.hook_name]
-        }
+        features_dict: dict[str, Array2D | Sequence] = {}
+        for hook_name in [self.cfg.hook_name]:
+            if self.cfg.activation_storage_format == SPARSE_ACTIVATION_FORMAT:
+                features_dict[bitmask_column(hook_name)] = Sequence(  # type: ignore
+                    Value(dtype="uint8"),
+                    length=bitmask_num_bytes(self.context_size * self.cfg.d_in),
+                )
+                features_dict[values_column(hook_name)] = Sequence(  # type: ignore
+                    Value(dtype=self.cfg.dtype)
+                )
+            else:
+                features_dict[hook_name] = Array2D(
+                    shape=(self.context_size, self.cfg.d_in), dtype=self.cfg.dtype
+                )
         features_dict["token_ids"] = Sequence(  # type: ignore
             Value(dtype="int32"), length=self.context_size
         )
@@ -338,10 +353,14 @@ class CacheActivationsRunner:
             context_size=self.context_size,
             d_in=self.cfg.d_in,
         )
-        shard_dict: dict[str, object] = {
-            hook_name: act_batch
-            for hook_name, act_batch in zip(hook_names, [acts], strict=True)
-        }
+        shard_dict: dict[str, object] = {}
+        for hook_name, act_batch in zip(hook_names, [acts], strict=True):
+            if self.cfg.activation_storage_format == SPARSE_ACTIVATION_FORMAT:
+                bitmask_rows, values_rows = encode_sparse_rows(act_batch)
+                shard_dict[bitmask_column(hook_name)] = bitmask_rows
+                shard_dict[values_column(hook_name)] = values_rows
+            else:
+                shard_dict[hook_name] = act_batch
 
         if token_ids is not None:
             token_ids = einops.rearrange(

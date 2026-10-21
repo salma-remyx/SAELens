@@ -35,6 +35,13 @@ from sae_lens.training.mixing_buffer import (
     mixing_buffer,
     multi_hook_concat_split_iter,
 )
+from sae_lens.training.sparse_activation_codec import (
+    bitmask_column,
+    bitmask_num_bytes,
+    decode_sparse_rows,
+    is_sparse_activation_cache,
+    values_column,
+)
 from sae_lens.util import (
     extract_stop_at_layer_from_tlens_hook_name,
     get_special_token_ids,
@@ -577,6 +584,21 @@ class ActivationsStore:
         # ---
         # Actual code
         activations_dataset = datasets.load_from_disk(self.cached_activations_path)
+        if is_sparse_activation_cache(
+            activations_dataset.column_names, self.hook_name
+        ):
+            expected_bitmask_bytes = bitmask_num_bytes(self.context_size * self.d_in)
+            stored_bitmask_bytes = activations_dataset.features[
+                bitmask_column(self.hook_name)
+            ].length
+            if stored_bitmask_bytes != expected_bitmask_bytes:
+                raise ValueError(
+                    f"Given dataset bitmask length {stored_bitmask_bytes} does not match context_size ({self.context_size}) and d_in ({self.d_in})"
+                )
+            # torch formatting cannot stack the ragged values column, so sparse
+            # rows are decoded to tensors in _load_raw_llm_batch_from_cached.
+            self.current_row_idx = 0  # idx to load next batch from
+            return activations_dataset
         columns = [self.hook_name]
         if "token_ids" in activations_dataset.column_names:
             columns.append("token_ids")
@@ -730,7 +752,9 @@ class ActivationsStore:
         d_in = self.d_in
 
         # In future, could be a list of multiple hook names
-        if self.hook_name not in self.cached_activation_dataset.column_names:
+        column_names = self.cached_activation_dataset.column_names
+        sparse_cache = is_sparse_activation_cache(column_names, self.hook_name)
+        if not sparse_cache and self.hook_name not in column_names:
             raise ValueError(
                 f"Missing columns in dataset. Expected {self.hook_name}, "
                 f"got {self.cached_activation_dataset.column_names}."
@@ -746,12 +770,21 @@ class ActivationsStore:
         ]
         # Load activations for each hook.
         # Usually faster to first slice dataset then pick column
-        acts_buffer = ds_slice[self.hook_name]
-        if acts_buffer.shape != (batch_size, context_size, d_in):
-            raise ValueError(
-                f"acts_buffer has shape {acts_buffer.shape}, "
-                f"but expected ({batch_size}, {context_size}, {d_in})."
-            )
+        if sparse_cache:
+            acts_buffer = decode_sparse_rows(
+                ds_slice[bitmask_column(self.hook_name)],
+                ds_slice[values_column(self.hook_name)],
+                context_size,
+                d_in,
+                self.dtype,
+            ).to(device=self.device)
+        else:
+            acts_buffer = ds_slice[self.hook_name]
+            if acts_buffer.shape != (batch_size, context_size, d_in):
+                raise ValueError(
+                    f"acts_buffer has shape {acts_buffer.shape}, "
+                    f"but expected ({batch_size}, {context_size}, {d_in})."
+                )
 
         self.current_row_idx += batch_size
         acts_buffer = acts_buffer.reshape(batch_size * context_size, d_in)
@@ -760,6 +793,9 @@ class ActivationsStore:
             return acts_buffer, None
 
         token_ids_buffer = ds_slice["token_ids"]
+        if not isinstance(token_ids_buffer, torch.Tensor):
+            # sparse caches skip dataset-level torch formatting
+            token_ids_buffer = torch.as_tensor(token_ids_buffer, dtype=torch.int32)
         if token_ids_buffer.shape != (batch_size, context_size):
             raise ValueError(
                 f"token_ids_buffer has shape {token_ids_buffer.shape}, "
