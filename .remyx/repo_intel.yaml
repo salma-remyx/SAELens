@@ -109,7 +109,7 @@ observed_landing_zones:
   last_observed: '2026-10-03T11:31:35Z'
 - path: sae_lens/analysis/
   shape_tags:
-  - unclassified
+  - library-shape-public-api
   confirmed_by:
   - arxiv: 2609.09902v1
     mode: ''
@@ -126,7 +126,14 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: sparse-autoencoders-encode-both-concepts-and-functions-the-d
     timestamp: '2026-09-25T11:35:48Z'
-  last_observed: '2026-09-25T11:35:48Z'
+  - arxiv: 2610.30006v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: 'Library API surface: exported as AuditableDetector from
+      sae_lens/analysis/__init__.py (__all__), consumed by external users via `from
+      sae_lens.analysis import AuditableDetector`; helper functions impo'
+    branch: building-auditable-ai-text-detectors-with-sparse-autoencoder
+    timestamp: '2026-10-25T11:15:54Z'
+  last_observed: '2026-10-25T11:15:54Z'
 - path: sae_lens/saes/
   shape_tags:
   - library-shape-public-api
@@ -164,4 +171,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-24T10:40:01Z'
+last_updated: '2026-10-25T11:15:54Z'
