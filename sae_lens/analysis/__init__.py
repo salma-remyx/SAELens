@@ -1,6 +1,7 @@
+from sae_lens.analysis.auditable_detector import AuditableDetector
 from sae_lens.analysis.hooked_sae_transformer import HookedSAETransformer
 
-__all__ = ["HookedSAETransformer"]
+__all__ = ["AuditableDetector", "HookedSAETransformer"]
 
 try:
     from sae_lens.analysis.compat import has_transformer_bridge
