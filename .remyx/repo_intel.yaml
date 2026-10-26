@@ -156,7 +156,12 @@ observed_landing_zones:
       sae_lens/__init__.py, reached by MultiSAETrainingRunner'
     branch: beyond-saes-consistent-concept-discovery-with-sparse-coding
     timestamp: '2026-10-20T11:54:54Z'
-  last_observed: '2026-10-20T11:54:54Z'
+  - arxiv: 2610.26824v1
+    mode: ''
+    call_site_specifics: ''
+    branch: specmrl-redesign-matryoshka-representation-learning-within-p
+    timestamp: '2026-10-26T13:01:15Z'
+  last_observed: '2026-10-26T13:01:15Z'
 - path: sae_lens/
   shape_tags:
   - library-shape-public-api
@@ -171,4 +176,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-25T11:15:54Z'
+last_updated: '2026-10-26T13:01:15Z'
