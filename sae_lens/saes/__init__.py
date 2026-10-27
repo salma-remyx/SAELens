@@ -1,3 +1,9 @@
+from .abstopk_sae import (
+    AbsTopKSAE,
+    AbsTopKSAEConfig,
+    AbsTopKTrainingSAE,
+    AbsTopKTrainingSAEConfig,
+)
 from .batchtopk_sae import (
     BatchTopKTrainingSAE,
     BatchTopKTrainingSAEConfig,
@@ -70,6 +76,10 @@ __all__ = [
     "TopKSAEConfig",
     "TopKTrainingSAE",
     "TopKTrainingSAEConfig",
+    "AbsTopKSAE",
+    "AbsTopKSAEConfig",
+    "AbsTopKTrainingSAE",
+    "AbsTopKTrainingSAEConfig",
     "BatchTopKTrainingSAE",
     "BatchTopKTrainingSAEConfig",
     "Transcoder",
