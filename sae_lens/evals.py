@@ -401,6 +401,11 @@ class ExplainedVarianceCalculator:
 
     def add_batch(self, sae_output: torch.Tensor, hidden_acts: torch.Tensor) -> None:
         """Add a batch. Both shapes: (batch_size, hidden_dim)."""
+        # Promote before squaring or reducing: converting a low-precision sum
+        # afterwards cannot recover overflow or variance lost to rounding.
+        hidden_acts = hidden_acts.to(
+            torch.promote_types(hidden_acts.dtype, torch.float32)
+        )
         batch_sum = hidden_acts.sum(dim=0).to(device="cpu", dtype=torch.float64)
         self.sum_x = batch_sum if self.sum_x is None else self.sum_x + batch_sum
         self.sum_squared_norm += hidden_acts.pow(2).sum().item()
@@ -569,8 +574,14 @@ def get_sparsity_and_variance_metrics(
             )
 
         if compute_sparsity_metrics:
-            l0 = (flattened_sae_feature_acts > 0).sum(dim=-1).float()
-            l1 = flattened_sae_feature_acts.sum(dim=-1)
+            # != 0 rather than > 0 so that negative-but-active features (e.g.
+            # bidirectional architectures like AbsTopK) are counted. This is a
+            # no-op for ReLU-based architectures, whose activations are >= 0.
+            l0 = (flattened_sae_feature_acts != 0).sum(dim=-1).float()
+            # abs() before summing so the L1 metric aggregates activation
+            # magnitudes; without it, signed activations (e.g. AbsTopK) can
+            # cancel or yield a negative "L1". No-op for ReLU-based SAEs (>= 0).
+            l1 = flattened_sae_feature_acts.abs().sum(dim=-1)
             metric_dict["l0"].append(l0)
             metric_dict["l1"].append(l1)
 
@@ -606,7 +617,10 @@ def get_sparsity_and_variance_metrics(
             metric_dict["cossim"].append(cossim)
 
         if compute_featurewise_density_statistics:
-            sae_feature_activations_bool = (masked_sae_feature_activations > 0).float()
+            # != 0 rather than > 0 so that negative-but-active features (e.g.
+            # bidirectional architectures like AbsTopK) are counted. This is a
+            # no-op for ReLU-based architectures, whose activations are >= 0.
+            sae_feature_activations_bool = (masked_sae_feature_activations != 0).float()
             total_feature_acts += sae_feature_activations_bool.sum(dim=1).sum(dim=0)
             total_feature_prompts += (sae_feature_activations_bool.sum(dim=1) > 0).sum(
                 dim=0
