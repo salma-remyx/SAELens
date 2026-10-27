@@ -32,7 +32,7 @@ Core options typically configured within the architecture-specific `sae` object 
   - For Standard SAEs: `l1_coefficient` (controls L1 penalty), `lp_norm` (e.g., 1.0 for L1, 0.7 for L0.7), `l1_warm_up_steps`.
   - For Gated SAEs: `l1_coefficient` (controls L1-like penalty on gate activations), `l1_warm_up_steps`.
   - For JumpReLU SAEs: `l0_coefficient` (controls L0-like penalty), `l0_warm_up_steps`, `jumprelu_init_threshold`, `jumprelu_bandwidth`.
-  - For TopK and BatchTopK SAEs: `k` (the number of features to keep active). Sparsity is enforced structurally.
+  - For TopK, AbsTopK and BatchTopK SAEs: `k` (the number of features to keep active). Sparsity is enforced structurally.
 - `normalize_activations`: Strategy for normalizing activations before they enter the SAE (e.g., `"expected_average_only_in"`).
 
 A sample training run from the [tutorial](https://github.com/decoderesearch/SAELens/blob/main/tutorials/training_a_sparse_autoencoder.ipynb) is shown below. Note how SAE-specific parameters are nested within the `sae` field:
@@ -284,6 +284,33 @@ from sae_lens import LanguageModelSAERunnerConfig, LanguageModelSAETrainingRunne
 cfg = LanguageModelSAERunnerConfig( # Full config would be defined here
     # ... other LanguageModelSAERunnerConfig parameters ...
     sae=TopKTrainingSAEConfig(
+        k=100, # Set the number of active features
+        d_in=1024, # Must match your hook point
+        d_sae=16 * 1024,
+        # ... other common SAE parameters from SAEConfig if needed ...
+    ),
+    # ...
+)
+sparse_autoencoder = LanguageModelSAETrainingRunner(cfg).run()
+```
+
+### Training AbsTopK SAEs
+
+<!-- prettier-ignore-start -->
+!!! warning "Warning: research architecture"
+    AbsTopK SAEs are mainly interesting for researchers studying bidirectional features. If you are looking for a standard, state-of-the-art SAE for most use-cases, we recommend using BatchTopK or JumpReLU SAEs.
+<!-- prettier-ignore-end -->
+
+The [AbsTopK](https://arxiv.org/abs/2510.00404) architecture is a TopK variant whose activation keeps the k largest-magnitude pre-activations along with their signs, rather than the k largest pre-activations after ReLU. Because TopK's ReLU forces every feature activation to be non-negative, bidirectional concepts (e.g. male vs. female) get fragmented into separate features; AbsTopK lets a single feature encode both directions of a concept. If you expect your features to be bidirectional, use AbsTopK instead of TopK; on non-negative pre-activations the two architectures behave identically.
+
+To train one, provide an `AbsTopKTrainingSAEConfig` instance to the `sae` field, or pass `--architecture abstopk` to the CLI runner. Like TopK, the primary parameter is `k`, the number of features to keep active (this defaults to 100 if not set), and sparsity is enforced structurally, so there is no `l1_coefficient`. The dead-neuron auxiliary reconstruction loss is the same as for TopK SAEs (controlled by `aux_loss_coefficient`), except that dead latents are selected by activation magnitude with their signs kept, matching the AbsTopK activation. The inherited `use_sparse_activations` option has no effect for AbsTopK; activations are always dense. `save_inference_model` routes through the existing TopK save/load machinery (including folding decoder norms into the weights when `rescale_acts_by_decoder_norm=True`, the default), and the saved SAE loads back as an `AbsTopKSAE`.
+
+```python
+from sae_lens import LanguageModelSAERunnerConfig, LanguageModelSAETrainingRunner, AbsTopKTrainingSAEConfig
+
+cfg = LanguageModelSAERunnerConfig( # Full config would be defined here
+    # ... other LanguageModelSAERunnerConfig parameters ...
+    sae=AbsTopKTrainingSAEConfig(
         k=100, # Set the number of active features
         d_in=1024, # Must match your hook point
         d_sae=16 * 1024,
