@@ -36,6 +36,10 @@ from sae_lens.saes import (
     StandardTrainingSAEConfig,
     TemporalSAE,
     TemporalSAEConfig,
+    TopAFASAE,
+    TopAFASAEConfig,
+    TopAFATrainingSAE,
+    TopAFATrainingSAEConfig,
     TopKSAE,
     TopKSAEConfig,
     TopKTrainingSAE,
@@ -124,6 +128,10 @@ __all__ = [
     "MatryoshkaBatchTopKTrainingSAEConfig",
     "TemporalSAE",
     "TemporalSAEConfig",
+    "TopAFASAE",
+    "TopAFASAEConfig",
+    "TopAFATrainingSAE",
+    "TopAFATrainingSAEConfig",
     "MatchingPursuitSAE",
     "MatchingPursuitTrainingSAE",
     "MatchingPursuitSAEConfig",
@@ -174,3 +182,5 @@ register_sae_class("matching_pursuit", MatchingPursuitSAE, MatchingPursuitSAECon
 register_sae_training_class(
     "matching_pursuit", MatchingPursuitTrainingSAE, MatchingPursuitTrainingSAEConfig
 )
+register_sae_class("topafa", TopAFASAE, TopAFASAEConfig)
+register_sae_training_class("topafa", TopAFATrainingSAE, TopAFATrainingSAEConfig)

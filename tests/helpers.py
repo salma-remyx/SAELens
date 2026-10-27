@@ -26,6 +26,7 @@ from sae_lens.saes.sae import (
 )
 from sae_lens.saes.standard_sae import StandardSAEConfig, StandardTrainingSAEConfig
 from sae_lens.saes.temporal_sae import TemporalSAEConfig
+from sae_lens.saes.topafa_sae import TopAFATrainingSAEConfig
 from sae_lens.saes.topk_sae import TopKSAEConfig, TopKTrainingSAEConfig
 
 TINYSTORIES_MODEL = "tiny-stories-1M"
@@ -147,6 +148,8 @@ class TrainingSAEConfigDict(TypedDict, total=False):
     jumprelu_ste_to_input: bool  # For JumpReLU
     rescale_acts_by_decoder_norm: bool  # For TopK
     matryoshka_widths: list[int]  # For MatryoshkaBatchTopK
+    afa_loss_coefficient: float  # For TopAFA
+    top_k_aux: int  # For TopAFA
     residual_threshold: float  # for MatchingPursuitSAE
     max_iterations: int | None  # for MatchingPursuitSAE
     stop_on_duplicate_support: bool  # for MatchingPursuitSAE
@@ -617,6 +620,39 @@ def build_matryoshka_batchtopk_sae_training_cfg(
     return build_matryoshka_batchtopk_runner_cfg(**kwargs).sae  # type: ignore
 
 
+# --- TopAFA SAE Builder ---
+def build_topafa_runner_cfg(
+    **kwargs: Any,
+) -> LanguageModelSAERunnerConfig[TopAFATrainingSAEConfig]:
+    """Helper to create a mock instance for TopAFA SAE."""
+    default_sae_config: TrainingSAEConfigDict = {
+        "d_in": 64,
+        "d_sae": 256,
+        "dtype": "float32",
+        "device": "cpu",
+        "normalize_activations": "none",
+        "decoder_init_norm": 0.1,
+        "apply_b_dec_to_input": False,
+    }
+    # Ensure sae config kwargs that are architecture-specific are passed through
+    temp_sae_overrides = {
+        k: v for k, v in kwargs.items() if k in TrainingSAEConfigDict.__annotations__
+    }
+    temp_sae_config = {**default_sae_config, **temp_sae_overrides}
+
+    runner_cfg = _build_runner_config(
+        TopAFATrainingSAEConfig,
+        cast(dict[str, Any], temp_sae_config),
+        **kwargs,
+    )
+    _update_sae_metadata(runner_cfg)
+    return runner_cfg
+
+
+def build_topafa_sae_training_cfg(**kwargs: Any) -> TopAFATrainingSAEConfig:
+    return build_topafa_runner_cfg(**kwargs).sae  # type: ignore
+
+
 MODEL_CACHE: dict[str, HookedTransformer] = {}
 
 
@@ -754,6 +790,7 @@ SAE_TRAINING_CONFIG_BUILDERS = {
     "batchtopk": build_batchtopk_sae_training_cfg,
     "matryoshka_batchtopk": build_matryoshka_batchtopk_sae_training_cfg,
     "matching_pursuit": build_matching_pursuit_sae_training_cfg,
+    "topafa": build_topafa_sae_training_cfg,
 }
 
 SAE_CONFIG_BUILDERS = {
@@ -773,4 +810,5 @@ SAE_RUNNER_CONFIG_BUILDERS = {
     "batchtopk": build_batchtopk_runner_cfg,
     "matryoshka_batchtopk": build_matryoshka_batchtopk_runner_cfg,
     "matching_pursuit": build_matching_pursuit_runner_cfg,
+    "topafa": build_topafa_runner_cfg,
 }
