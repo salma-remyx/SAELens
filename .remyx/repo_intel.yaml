@@ -133,7 +133,14 @@ observed_landing_zones:
       sae_lens.analysis import AuditableDetector`; helper functions impo'
     branch: building-auditable-ai-text-detectors-with-sparse-autoencoder
     timestamp: '2026-10-25T11:15:54Z'
-  last_observed: '2026-10-25T11:15:54Z'
+  - arxiv: 2610.26489v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: 'Public library API: symbols exported from sae_lens/analysis/__init__.py
+      (__all__), which internally drives the pre-existing intervention entry point
+      HookedSAETransformer.run_with_hooks_with_saes (sae_'
+    branch: strength-controls-change-how-interventions-compare-across-sp
+    timestamp: '2026-10-27T11:58:53Z'
+  last_observed: '2026-10-27T11:58:53Z'
 - path: sae_lens/saes/
   shape_tags:
   - library-shape-public-api
@@ -176,4 +183,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-26T13:01:15Z'
+last_updated: '2026-10-27T11:58:53Z'
