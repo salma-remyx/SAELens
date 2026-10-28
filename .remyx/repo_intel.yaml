@@ -168,7 +168,14 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: specmrl-redesign-matryoshka-representation-learning-within-p
     timestamp: '2026-10-26T13:01:15Z'
-  last_observed: '2026-10-26T13:01:15Z'
+  - arxiv: 2610.18462v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: "sae_lens/saes/topk_sae.py \u2014 the pre-existing TopKTrainingSAE.encode_with_hidden_pre\
+      \ / decode / calculate_auxiliary_loss / fold_W_dec_norm / process_state_dict_for_saving_inference\
+      \ now route through sa"
+    branch: readout-scaling-shapes-sparse-feature-recovery-v2
+    timestamp: '2026-10-28T12:49:45Z'
+  last_observed: '2026-10-28T12:49:45Z'
 - path: sae_lens/
   shape_tags:
   - library-shape-public-api
@@ -183,4 +190,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-27T11:58:53Z'
+last_updated: '2026-10-28T12:49:45Z'
