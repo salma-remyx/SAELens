@@ -12,7 +12,7 @@ benchmarks:
     suite:
       notebook:
         path: "eval/eval_topk_vs_abstopk_tinystories.ipynb"
-        packages: [wandb]
+        packages: [wandb, "transformer-lens<4.0.0"]
     baseline: none
     scorer: explained_variance_gap
     policy:
