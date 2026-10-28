@@ -270,3 +270,24 @@ from sae_lens import register_sae_class
 # Register the inference SAE
 register_sae_class("gelu", GeluSAE, GeluSAEConfig)
 ```
+
+## A built-in example: the AbsTopK architecture
+
+The [AbsTopK](https://arxiv.org/abs/2510.00404) architecture is a built-in example of both patterns above: `AbsTopKSAE` subclasses `TopKSAE` and only overrides `get_activation_fn` (the training variant additionally overrides the dead-neuron selection used by the auxiliary loss).
+
+TopK SAEs keep the k largest pre-activations and ReLU them, which forces every feature activation to be non-negative. This fragments bidirectional concepts (e.g. male vs. female) into separate features. AbsTopK instead applies the L0 hard-thresholding on the largest-magnitude pre-activations while preserving their signs, so a single feature can encode both directions of a concept. If you expect your features to be bidirectional, use AbsTopK rather than TopK; on non-negative pre-activations the two architectures behave identically.
+
+Since feature activations can now be negative, count active features with `!= 0` rather than `> 0`:
+
+```python
+from sae_lens import AbsTopKSAE, AbsTopKSAEConfig
+
+sae = AbsTopKSAE(AbsTopKSAEConfig(k=32, d_in=768, d_sae=16 * 1024))
+
+# activations shape: (batch, seq_len, d_model)
+feature_acts = sae.encode(activations)
+# feature_acts has exactly k non-zero entries per token, with their original signs
+l0 = (feature_acts != 0).sum(dim=-1).float().mean()
+```
+
+SAELens registers this architecture in `sae_lens/__init__.py` with `register_sae_class("abstopk", AbsTopKSAE, AbsTopKSAEConfig)` (and the matching `register_sae_training_class` call), so a saved SAE whose `cfg.json` contains `"architecture": "abstopk"` loads back as an `AbsTopKSAE` via `SAE.load_from_disk` or `SAE.from_pretrained`. See [Training AbsTopK SAEs](training_saes.md#training-abstopk-saes) for training one yourself.
