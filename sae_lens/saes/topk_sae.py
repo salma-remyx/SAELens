@@ -1,5 +1,6 @@
 """Inference-only TopKSAE variant, similar in spirit to StandardSAE but using a TopK-based activation."""
 
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -8,6 +9,11 @@ from torch import nn
 from transformer_lens.hook_points import HookPoint
 from typing_extensions import override
 
+from sae_lens.saes.readout_canonicalization import (
+    ReadoutCanonicalization,
+    compute_readout_canonicalization,
+    fold_readout_canonicalization,
+)
 from sae_lens.saes.sae import (
     SAE,
     SAEConfig,
@@ -313,6 +319,13 @@ class TopKTrainingSAEConfig(TrainingSAEConfig):
         rescale_acts_by_decoder_norm (bool): Treat the decoder as if it was already normalized.
             This is a good idea since decoder norm can randomly drift during training, and this
             affects what the topk activations will be.
+        readout_condition_number (float | None): If set, train in readout-canonicalized
+            decision-space (RC-DS) coordinates: the decoder's singular-value gains are removed
+            from the space the topk decision is made in, equalizing its spectrum down to this
+            condition number (1 removes them entirely). This generalizes
+            rescale_acts_by_decoder_norm, which only removes per-feature column norms, so it
+            takes precedence over that option. Note that it costs an SVD of the decoder on
+            every forward pass.
         decoder_init_norm (float | None): Norm to initialize decoder weights to.
             0.1 corresponds to the "heuristic" initialization from Anthropic's April update.
             Use None to disable. Inherited from TrainingSAEConfig.
@@ -336,6 +349,20 @@ class TopKTrainingSAEConfig(TrainingSAEConfig):
     use_sparse_activations: bool = False
     aux_loss_coefficient: float = 1.0
     rescale_acts_by_decoder_norm: bool = True
+    readout_condition_number: float | None = None
+
+    def __post_init__(self):
+        if (
+            self.readout_condition_number is not None
+            and self.rescale_acts_by_decoder_norm
+        ):
+            warnings.warn(
+                "rescale_acts_by_decoder_norm is ignored when readout_condition_number "
+                "is set, since readout canonicalization already removes the decoder's "
+                "gains. Setting rescale_acts_by_decoder_norm to False."
+            )
+            self.rescale_acts_by_decoder_norm = False
+        super().__post_init__()
 
     @override
     @classmethod
@@ -360,6 +387,29 @@ class TopKTrainingSAE(TrainingSAE[TopKTrainingSAEConfig]):
         super().initialize_weights()
         _init_weights_topk(self)
 
+    def _readout_canonicalization(self) -> ReadoutCanonicalization | None:
+        """
+        Readout canonicalization for the current decoder, or None if disabled.
+
+        Recomputed on every call so that it always matches W_dec, at the cost of
+        one SVD of the decoder per call.
+        """
+        if self.cfg.readout_condition_number is None:
+            return None
+        return compute_readout_canonicalization(
+            self.W_dec, self.cfg.readout_condition_number
+        )
+
+    def _decoder_for_canonicalized_acts(self) -> tuple[torch.Tensor, bool]:
+        """
+        Decoder that maps canonicalized activations back to input space, plus the flag
+        to pass to act_times_W_dec alongside it.
+        """
+        canonicalization = self._readout_canonicalization()
+        if canonicalization is None:
+            return self.W_dec, self.cfg.rescale_acts_by_decoder_norm
+        return canonicalization.remove_from_decoder(self.W_dec), False
+
     @override
     def encode_with_hidden_pre(
         self, x: torch.Tensor
@@ -370,7 +420,9 @@ class TopKTrainingSAE(TrainingSAE[TopKTrainingSAEConfig]):
         sae_in = self.process_sae_in(x)
         hidden_pre = self.hook_sae_acts_pre(sae_in @ self.W_enc + self.b_enc)
 
-        if self.cfg.rescale_acts_by_decoder_norm:
+        if (canonicalization := self._readout_canonicalization()) is not None:
+            hidden_pre = canonicalization.apply(hidden_pre)
+        elif self.cfg.rescale_acts_by_decoder_norm:
             hidden_pre = hidden_pre * self.W_dec.norm(dim=-1)
 
         # Apply the TopK activation function (already set in self.activation_fn if config is "topk")
@@ -386,10 +438,9 @@ class TopKTrainingSAE(TrainingSAE[TopKTrainingSAEConfig]):
         Decodes feature activations back into input space,
         applying optional finetuning scale, hooking, out normalization, etc.
         """
+        W_dec, rescale_acts_by_decoder_norm = self._decoder_for_canonicalized_acts()
         sae_out_pre = (
-            act_times_W_dec(
-                feature_acts, self.W_dec, self.cfg.rescale_acts_by_decoder_norm
-            )
+            act_times_W_dec(feature_acts, W_dec, rescale_acts_by_decoder_norm)
             + self.b_dec
         )
         sae_out_pre = self.hook_sae_recons(sae_out_pre)
@@ -433,6 +484,13 @@ class TopKTrainingSAE(TrainingSAE[TopKTrainingSAEConfig]):
     @override
     @torch.no_grad()
     def fold_W_dec_norm(self) -> None:
+        canonicalization = self._readout_canonicalization()
+        if canonicalization is not None:
+            fold_readout_canonicalization(
+                canonicalization, self.W_enc, self.b_enc, self.W_dec
+            )
+            self.cfg.readout_condition_number = None
+            return
         if not self.cfg.rescale_acts_by_decoder_norm:
             raise NotImplementedError(
                 "Folding W_dec_norm is not safe for TopKSAEs when rescale_acts_by_decoder_norm is False, as this may change the topk activations"
@@ -492,9 +550,8 @@ class TopKTrainingSAE(TrainingSAE[TopKTrainingSAEConfig]):
         # Encourage the top ~50% of dead latents to predict the residual of the
         # top k living latents. Per the paper (Appendix A.2), the reconstruction
         # is ê = W_dec @ z (no bias), since b_dec is already in the residual.
-        recons = act_times_W_dec(
-            auxk_acts, self.W_dec, self.cfg.rescale_acts_by_decoder_norm
-        )
+        W_dec, rescale_acts_by_decoder_norm = self._decoder_for_canonicalized_acts()
+        recons = act_times_W_dec(auxk_acts, W_dec, rescale_acts_by_decoder_norm)
         # Apply the same reshaping as decode() so recons matches the residual's shape
         recons = self.reshape_fn_out(recons, self.d_head)
         auxk_loss = (recons - residual).pow(2).sum(dim=-1).mean()
@@ -505,7 +562,15 @@ class TopKTrainingSAE(TrainingSAE[TopKTrainingSAEConfig]):
         self, state_dict: dict[str, Any]
     ) -> None:
         super().process_state_dict_for_saving_inference(state_dict)
-        if self.cfg.rescale_acts_by_decoder_norm:
+        canonicalization = self._readout_canonicalization()
+        if canonicalization is not None:
+            fold_readout_canonicalization(
+                canonicalization,
+                state_dict["W_enc"],
+                state_dict["b_enc"],
+                state_dict["W_dec"],
+            )
+        elif self.cfg.rescale_acts_by_decoder_norm:
             _fold_norm_topk(
                 W_dec_norm=self.get_W_dec_norm(),
                 W_enc=state_dict["W_enc"],

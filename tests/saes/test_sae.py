@@ -61,6 +61,7 @@ def test_TrainingSAEConfig_serializes_training_architecture_details():
         "use_sparse_activations": False,
         "k": 8,
         "rescale_acts_by_decoder_norm": False,
+        "readout_condition_number": None,
         "topk_threshold_lr": 0.03,
         "matryoshka_widths": [32, 64, 128],
         "use_matryoshka_aux_loss": True,

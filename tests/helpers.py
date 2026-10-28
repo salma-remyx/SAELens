@@ -146,6 +146,7 @@ class TrainingSAEConfigDict(TypedDict, total=False):
     jumprelu_tanh_scale: float  # For JumpReLU
     jumprelu_ste_to_input: bool  # For JumpReLU
     rescale_acts_by_decoder_norm: bool  # For TopK
+    readout_condition_number: float | None  # For TopK
     matryoshka_widths: list[int]  # For MatryoshkaBatchTopK
     residual_threshold: float  # for MatchingPursuitSAE
     max_iterations: int | None  # for MatchingPursuitSAE

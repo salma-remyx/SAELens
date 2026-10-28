@@ -206,6 +206,12 @@ def _validate_matryoshka_config(cfg: MatryoshkaBatchTopKTrainingSAEConfig) -> No
     if not cfg.matryoshka_widths:
         raise ValueError("cfg.matryoshka_widths must not be empty.")
 
+    if cfg.readout_condition_number is not None:
+        raise ValueError(
+            "Readout canonicalization is not supported for Matryoshka SAEs, as it "
+            "mixes latents across matryoshka levels."
+        )
+
     if any(width <= 0 for width in cfg.matryoshka_widths):
         raise ValueError("cfg.matryoshka_widths must contain only positive widths.")
 

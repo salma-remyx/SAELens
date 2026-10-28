@@ -714,6 +714,7 @@ def test_LanguageModelSAETrainingRunner_saves_final_output_and_checkpoints(
         "use_sparse_activations": False,
         "k": 10,
         "rescale_acts_by_decoder_norm": False,
+        "readout_condition_number": None,
         "topk_threshold_lr": 0.02,
     }
     assert (
