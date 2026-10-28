@@ -130,7 +130,7 @@ benchmarks:
 held_constant:
   - "same k=32, d_sae=1024 (16x of d_model=64 read from model.cfg at runtime), seeds reset before each arm, same total_training_tokens and train_batch_size_tokens"
   - "same trainer path (SAETrainer inside LanguageModelSAETrainingRunner, repo logging left on) and same evals.py defaults: n_eval_reconstruction_batches=10, n_eval_sparsity_variance_batches=1"
-  - "wandb logging left on for both arms but in offline mode (WANDB_MODE=offline set by the suite): local dashboards only, no auth/network, identical arms"
+  - "wandb logging left on for both arms, online, in one WANDB_RUN_GROUP: identical logging on both arms"
   - "same hook point blocks.0.hook_mlp_out on tiny-stories-1M and same dataset through the repo's ActivationsStore for both arms"
 avoid:
   - "no synthetic stand-in activations; both arms must train on real tiny-stories-1M activations from the repo's own store"
