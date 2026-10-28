@@ -1,0 +1,177 @@
+question:
+  kind: capability
+  ask: "Does AbsTopK recover negative signals without hurting reconstruction on tiny-stories-1M activations (CPU, same k/width/seed/tokens, under 30 minutes)? Pass if AbsTopK's held-out explained_variance is not worse than TopK's by more than 0.02 and a nonzero share of its selected latents are negative."
+loop:
+  max_iterations: 8
+  fix_code: true
+requires: [wandb]
+compute:
+  tier: cpu
+benchmarks:
+  - name: topk-vs-abstopk-tinystories
+    suite:
+      notebook:
+        path: "eval/eval_topk_vs_abstopk_tinystories.ipynb"
+        packages: [wandb]
+    baseline: none
+    scorer: explained_variance_gap
+    policy:
+      guardrail_veto: true
+    metrics:
+      # Every metric below carries an explicit numeric threshold (contract requirement).
+      # Diagnostic thresholds are loose structural/derived bounds that a correctly running
+      # arm satisfies by construction and only a broken measurement violates; they are
+      # reporting bounds, not gating bars (role: diagnostic), and each number's derivation
+      # is written next to it.
+      #
+      # TARGET 1 (user bar): ev_topk - ev_abstopk on the same run_evals held-out batches; pass iff <= 0.02.
+      - name: explained_variance_gap
+        direction: min
+        threshold: 0.02
+        role: target
+        bar: goal
+        reads_as: "how much lower AbsTopK's held-out explained variance is than TopK's; <= 0.02 means not meaningfully worse"
+      # TARGET 2 (user bar): at init pre-acts sit near-symmetric about b_enc so ~half of top-|k| picks are negative, and
+      # AbsTopK has no non-negativity pressure, so a working sign path leaves well above 1% negative; 0.0 would catch nothing.
+      - name: abstopk_negative_share
+        direction: max
+        threshold: 0.01
+        role: target
+        bar: goal
+        reads_as: "fraction of AbsTopK's selected (nonzero) latent activations that are negative on held-out tokens"
+      # GUARDRAIL (the only one, and baseline-achievable): TopK's encode ends in ReLU on both baseline and PR head,
+      # so its negative share is exactly 0 on both; > 0 means the selection/probe measurement itself is broken.
+      - name: topk_negative_share
+        direction: min
+        threshold: 0.0
+        role: guardrail
+        bar: sanity
+        reads_as: "negative share among TopK's selected activations; must be exactly 0 because TopK ReLUs before top-k"
+      # DIAGNOSTIC, structural bound: top-|k| keeps exactly k=32 entries per token and a selected pre-activation
+      # equals 0.0 with probability ~0 in fp32, so the true-nonzero count is exactly 32 -> pass iff >= 32; anything
+      # else (0 on a capability-absent run, or a garbled selection) fails. It cannot be a guardrail because the
+      # capability-absent fallback zeroes it — a bar the baseline cannot clear would veto every baseline run.
+      - name: abstopk_true_nonzero_per_token
+        direction: max
+        threshold: 32
+        role: diagnostic
+        reads_as: "mean number of nonzero latents per token for AbsTopK; pinned at exactly k=32 by construction on the PR head (zero on baseline)"
+      # DIAGNOSTIC floor: a correctly trained 16x-expansion TopK SAE on 64-dim tiny-stories mlp_out at ~2M tokens
+      # reaches held-out EV ~0.9+ in practice; 0.5 is a conservative floor that untrained/degenerate arms (EV ~ 0,
+      # e.g. a dead decoder) fall below, so pass iff >= 0.5.
+      - name: ev_topk
+        direction: max
+        threshold: 0.5
+        role: diagnostic
+        reads_as: "TopK control's held-out explained_variance from the repo's run_evals (10 reconstruction batches)"
+      # DIAGNOSTIC floor, same derivation as ev_topk (the 0.02 gap target itself implies ev_abstopk >= ev_topk - 0.02
+      # whenever the target passes); pass iff >= 0.5. Zero on a capability-absent run, which is expected to fail here
+      # — that is why this is a diagnostic, not a guardrail.
+      - name: ev_abstopk
+        direction: max
+        threshold: 0.5
+        role: diagnostic
+        reads_as: "AbsTopK's held-out explained_variance from the repo's run_evals (10 reconstruction batches)"
+      # DIAGNOSTIC structural bound: encode zeroes all but the k=32 selected entries per token, so however evals.py
+      # counts signs the reported L0 cannot exceed 32; > 32 would mean activations leaked past the top-k mask.
+      # Pass iff <= 32.
+      - name: l0_topk
+        direction: min
+        threshold: 32
+        role: diagnostic
+        reads_as: "L0 per token that the repo's evals.py reports for TopK"
+      # DIAGNOSTIC structural bound, same as l0_topk: only k=32 of 1024 entries survive top-|k|, so L0 <= 32 whether
+      # evals.py counts > 0 (~16 for AbsTopK, whose negative picks are excluded) or != 0 (~32). Pass iff <= 32.
+      - name: l0_abstopk
+        direction: min
+        threshold: 32
+        role: diagnostic
+        reads_as: "L0 per token that the repo's evals.py reports for AbsTopK; compare against abstopk_true_nonzero_per_token"
+      # DIAGNOSTIC structural bound: ReLU-then-top-k keeps at most k=32 nonzero entries per token, so the true
+      # nonzero count is <= 32 by construction (it converges up toward 32 as training separates b_enc).
+      # Pass iff <= 32; > 32 would mean values leaked past the selection.
+      - name: true_nonzero_topk
+        direction: min
+        threshold: 32
+        role: diagnostic
+        reads_as: "TopK's true (!= 0) selected count per token, <= k=32, converging to k as training separates b_enc"
+      # DIAGNOSTIC ceiling: tiny-stories mlp_out per-feature variance is O(1), and at the EV >= 0.5 floors above a
+      # healthy arm sits at MSE ~ 0.05-0.2, so 1.0 is a loose ceiling only a degenerate reconstruction
+      # (EV ~ 0, MSE ~ full activation variance) exceeds. Pass iff <= 1.0.
+      - name: mse_topk
+        direction: min
+        threshold: 1.0
+        role: diagnostic
+        reads_as: "TopK held-out MSE from run_evals"
+      # DIAGNOSTIC ceiling, same derivation as mse_topk (per-feature variance O(1) on this 64-dim hook, healthy arms
+      # at MSE ~ 0.05-0.2). Pass iff <= 1.0.
+      - name: mse_abstopk
+        direction: min
+        threshold: 1.0
+        role: diagnostic
+        reads_as: "AbsTopK held-out MSE from run_evals"
+      # DIAGNOSTIC ceiling: the probe makes 8 batches x 2048 tokens x k=32 ~= 524k selections across 1024 latents
+      # (~512 expected per latent under uniform spread), and the dead-latent aux loss actively drives dead counts
+      # toward 0, so a functioning arm stays far below half the dictionary dead; <= 512 (half of d_sae) is a loose
+      # ceiling. A collapsed encoder that reuses a few latents leaves ~992 dead and fails. Pass iff <= 512.
+      - name: dead_latents_topk
+        direction: min
+        threshold: 512
+        role: diagnostic
+        reads_as: "of 1024 latents, those never active across held-out probe batches for TopK (aux selection differs per arm)"
+      # DIAGNOSTIC ceiling, same derivation as dead_latents_topk (~524k selections over 1024 latents, aux
+      # resurrection, so well under half dead in a functioning arm). Reads 1024 on a capability-absent run, which
+      # fails as expected — again why this is a diagnostic, not a guardrail. Pass iff <= 512.
+      - name: dead_latents_abstopk
+        direction: min
+        threshold: 512
+        role: diagnostic
+        reads_as: "of 1024 latents, those never active across held-out probe batches for AbsTopK (aux selection differs per arm)"
+held_constant:
+  - "same k=32, d_sae=1024 (16x of d_model=64 read from model.cfg at runtime), seeds reset before each arm, same total_training_tokens and train_batch_size_tokens"
+  - "same trainer path (SAETrainer inside LanguageModelSAETrainingRunner, repo logging left on) and same evals.py defaults: n_eval_reconstruction_batches=10, n_eval_sparsity_variance_batches=1"
+  - "wandb logging left on for both arms but in offline mode (WANDB_MODE=offline set by the suite): local dashboards only, no auth/network, identical arms"
+  - "same hook point blocks.0.hook_mlp_out on tiny-stories-1M and same dataset through the repo's ActivationsStore for both arms"
+avoid:
+  - "no synthetic stand-in activations; both arms must train on real tiny-stories-1M activations from the repo's own store"
+  - "quality metrics are deterministic quantities (EV, L0, nonzero counts), never wall-clock; the user's 30-minute budget is honored by workload sizing (~2M tokens/arm), not measured, because tier: cpu makes shared timing noise"
+  - "do not enable CE/KL evals or move to GPU; the ask is CPU reconstruction parity, not downstream-loss or device claims"
+  - "no inline reimplementation of the activation or aux loss; measure only through the repo's TopK/AbsTopK classes and run_evals"
+report:
+  headline: "On tiny-stories-1M (CPU, matched k/seed/tokens), AbsTopK trains with {abstopk_negative_share:%} of selected latents negative while holding explained variance within {explained_variance_gap} of TopK"
+  findings:
+    - "selected-latent negative share: AbsTopK {abstopk_negative_share:%} vs TopK {topk_negative_share:%} (0 by construction)"
+    - "held-out explained_variance from evals.py: TopK {ev_topk} vs AbsTopK {ev_abstopk}, gap {explained_variance_gap} against the 0.02 bar"
+    - "evals.py L0: TopK {l0_topk} vs AbsTopK {l0_abstopk}; true nonzero per token: TopK {true_nonzero_topk} vs AbsTopK {abstopk_true_nonzero_per_token} (k=32)"
+    - "held-out MSE: TopK {mse_topk} vs AbsTopK {mse_abstopk}; dead latents of 1024: TopK {dead_latents_topk} vs AbsTopK {dead_latents_abstopk}"
+  establishes:
+    - "signs survive magnitude-based top-k selection in a really trained SAE, via {abstopk_negative_share} above 0 with the structural count {abstopk_true_nonzero_per_token} pinned at k"
+    - "reconstruction parity within the user's 0.02 band on held-out evals.py batches, via {explained_variance_gap}"
+  does_not_establish:
+    - "the paper's bidirectional concept encoding (probing/steering) or its claim that AbsTopK improves EV; only parity at toy scale is tested"
+    - "clean attribution of any EV gap to sign-keeping alone; the dead-neuron aux selection changes jointly (see {dead_latents_abstopk} vs {dead_latents_topk})"
+  not_measured:
+    - "CE-loss / KL downstream effect (the PR template's CE box), probing or steering accuracy, feature dashboard interpretability"
+    - "wall-clock runtime: the user's 30-minute budget is enforced by workload sizing (~2M tokens/arm, ~1000 steps), not measured, since tier: cpu makes wall time noise"
+  caveat: "toy-scale proxy: 64-dim tiny-stories-1M, k=32, ~2M tokens per arm on CPU, sized to fit the user's 30-minute budget for both arms; both arms may sit in a high-EV regime where the 0.02 band is easy to meet"
+  next: "train longer or at paper scale with compute_ce_loss=True and concept probing to test the bidirectional-feature claim itself"
+provenance:
+  explained_variance_gap: "user_guidance"
+  abstopk_negative_share: "user_guidance"
+  topk_negative_share: "inferred"
+  abstopk_true_nonzero_per_token: "inferred"
+  l0_topk: "user_guidance"
+  l0_abstopk: "user_guidance"
+  true_nonzero_topk: "user_guidance"
+  mse_topk: "pr_template:performance check"
+  mse_abstopk: "pr_template:performance check"
+  dead_latents_topk: "claim_analysis"
+  dead_latents_abstopk: "claim_analysis"
+  suite: "synthesized"
+  held_constant: "user_guidance"
+  requires: "pr_template:wandb dashboards with a control and test group"
+  compute: "user_guidance"
+logging:
+  wandb:
+    entity: smellslikeml    # from your W&B connection
+    project: remyx-validate-saelens    # default
