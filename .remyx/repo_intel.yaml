@@ -182,7 +182,14 @@ observed_landing_zones:
       \ now route through sa"
     branch: readout-scaling-shapes-sparse-feature-recovery-v2
     timestamp: '2026-10-28T12:49:45Z'
-  last_observed: '2026-10-28T12:49:45Z'
+  - arxiv: 2610.32866v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: 'Registry load path: SAE.load_from_disk / SAE.from_dict /
+      SAE.from_pretrained dispatch on architecture ''topk_transcoder''/''topk_skip_transcoder''
+      via get_sae_class (sae_lens/registry.py:40, sae_lens/saes'
+    branch: interpretable-sparse-fine-tuning-with-topklora-enables-faith
+    timestamp: '2026-11-03T14:08:16Z'
+  last_observed: '2026-11-03T14:08:16Z'
 - path: sae_lens/
   shape_tags:
   - library-shape-public-api
@@ -197,4 +204,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-10-31T12:24:29Z'
+last_updated: '2026-11-03T14:08:16Z'
