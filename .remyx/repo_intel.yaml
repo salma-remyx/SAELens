@@ -91,7 +91,12 @@ observed_landing_zones:
     call_site_specifics: ''
     branch: on-learning-expand-and-sparsify-representations
     timestamp: '2026-10-24T10:40:01Z'
-  last_observed: '2026-10-24T10:40:01Z'
+  - arxiv: 2610.37386v1
+    mode: ''
+    call_site_specifics: ''
+    branch: channel-selection-for-mixture-of-experts-decoding-needs-no-c
+    timestamp: '2026-11-07T12:58:36Z'
+  last_observed: '2026-11-07T12:58:36Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -204,4 +209,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-03T14:08:16Z'
+last_updated: '2026-11-07T12:58:36Z'
