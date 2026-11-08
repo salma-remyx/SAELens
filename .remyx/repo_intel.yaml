@@ -92,11 +92,13 @@ observed_landing_zones:
     branch: on-learning-expand-and-sparsify-representations
     timestamp: '2026-10-24T10:40:01Z'
   - arxiv: 2610.37386v1
-    mode: ''
-    call_site_specifics: ''
-    branch: channel-selection-for-mixture-of-experts-decoding-needs-no-c
-    timestamp: '2026-11-07T12:58:36Z'
-  last_observed: '2026-11-07T12:58:36Z'
+    mode: Mode 2 (adapted port)
+    call_site_specifics: "(none) \u2014 public library module sae_lens.saes.topk_selection,\
+      \ importable by package users and exercised by the benchmark workflow benchmark/test_typical_analysis_workflow.py;\
+      \ no pre-existing module ins"
+    branch: channel-selection-for-mixture-of-experts-decoding-needs-no-c-v2
+    timestamp: '2026-11-08T13:22:03Z'
+  last_observed: '2026-11-08T13:22:03Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -209,4 +211,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-07T12:58:36Z'
+last_updated: '2026-11-08T13:22:03Z'
