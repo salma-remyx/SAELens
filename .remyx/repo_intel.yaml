@@ -98,7 +98,14 @@ observed_landing_zones:
       \ no pre-existing module ins"
     branch: channel-selection-for-mixture-of-experts-decoding-needs-no-c-v2
     timestamp: '2026-11-08T13:22:03Z'
-  last_observed: '2026-11-08T13:22:03Z'
+  - arxiv: 2505.14420v2
+    mode: Mode 2 (adapted port)
+    call_site_specifics: New public library module sae_lens/analysis/feature_selection
+      (import path used by benchmark/test_typical_analysis_workflow.py, which drives
+      it through StandardSAE.encode); no pre-existing internal mo
+    branch: sae-fire-enhancing-earnings-surprise-predictions-through-spa
+    timestamp: '2026-11-11T14:09:18Z'
+  last_observed: '2026-11-11T14:09:18Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -211,4 +218,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-08T13:22:03Z'
+last_updated: '2026-11-11T14:09:18Z'
