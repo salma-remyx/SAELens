@@ -105,7 +105,14 @@ observed_landing_zones:
       it through StandardSAE.encode); no pre-existing internal mo
     branch: sae-fire-enhancing-earnings-surprise-predictions-through-spa
     timestamp: '2026-11-11T14:09:18Z'
-  last_observed: '2026-11-11T14:09:18Z'
+  - arxiv: 2611.08089v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: "(none internally \u2014 new public library API under sae_lens/analysis/expert_attribution.py;\
+      \ external users call it on tensors from HookedSAETransformer.run_with_cache\
+      \ plus SAE.encode_with_hidden_pre, as "
+    branch: sae-interprets-moe-sparse-autoencoders-reveal-that-moe-exper
+    timestamp: '2026-11-12T15:17:40Z'
+  last_observed: '2026-11-12T15:17:40Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -218,4 +225,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-11T14:09:18Z'
+last_updated: '2026-11-12T15:17:40Z'
