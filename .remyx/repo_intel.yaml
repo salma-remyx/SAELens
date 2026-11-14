@@ -114,12 +114,12 @@ observed_landing_zones:
     timestamp: '2026-11-12T15:17:40Z'
   - arxiv: 2611.14168v1
     mode: Mode 2 (adapted port)
-    call_site_specifics: "benchmark/test_typical_analysis_workflow.py \u2014 a pre-existing\
-      \ committed (empty at HEAD) scaffold in the repo's benchmark suite, sibling\
-      \ to test_synthetic_hierarchy.py, run via pytest; it trains a JumpR"
-    branch: representational-atoms-in-neural-networks
-    timestamp: '2026-11-13T14:37:43Z'
-  last_observed: '2026-11-13T14:37:43Z'
+    call_site_specifics: "(none) \u2014 public library API at sae_lens/analysis/dictionary_stability;\
+      \ in-repo it is invoked by the pre-existing (previously empty) benchmark scaffold\
+      \ benchmark/test_typical_analysis_workflow.py under"
+    branch: representational-atoms-in-neural-networks-v2
+    timestamp: '2026-11-14T13:39:51Z'
+  last_observed: '2026-11-14T13:39:51Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -232,4 +232,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-13T14:37:43Z'
+last_updated: '2026-11-14T13:39:51Z'
