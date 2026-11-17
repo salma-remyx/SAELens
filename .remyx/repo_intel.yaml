@@ -119,7 +119,12 @@ observed_landing_zones:
       \ by benchmark/test_typical_analysis_workflow.py (a pre-existing empty p"
     branch: representational-atoms-in-neural-networks-v3
     timestamp: '2026-11-15T14:02:05Z'
-  last_observed: '2026-11-15T14:02:05Z'
+  - arxiv: 2405.18392v3
+    mode: ''
+    call_site_specifics: ''
+    branch: scaling-laws-and-compute-optimal-training-beyond-fixed-train
+    timestamp: '2026-11-17T15:54:20Z'
+  last_observed: '2026-11-17T15:54:20Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -232,4 +237,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-15T14:02:05Z'
+last_updated: '2026-11-17T15:54:20Z'
