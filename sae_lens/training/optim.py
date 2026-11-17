@@ -7,6 +7,8 @@ from typing import Any
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 
+from sae_lens.training.wsd_schedules import WSD_DECAY_EXPONENTS, get_wsd_lr_scheduler
+
 
 #  Constant
 #  Cosine Annealing with Warmup
@@ -27,7 +29,7 @@ def get_lr_scheduler(
     transformers: https://huggingface.co/docs/transformers/main_classes/optimizer_schedules
 
     Args:
-        scheduler_name (str): Name of the scheduler to use, one of "constant", "cosineannealing", "cosineannealingwarmrestarts"
+        scheduler_name (str): Name of the scheduler to use, one of "constant", "cosineannealing", "cosineannealingwarmrestarts", "wsdlinear", "wsdsqrt"
         optimizer (optim.Optimizer): Optimizer to use
         training_steps (int): Total number of training steps
         warm_up_steps (int, optional): Number of linear warm up steps. Defaults to 0.
@@ -37,6 +39,19 @@ def get_lr_scheduler(
     """
     base_scheduler_steps = training_steps - warm_up_steps - decay_steps
     norm_scheduler_name = scheduler_name.lower()
+    if norm_scheduler_name in WSD_DECAY_EXPONENTS:
+        # WSD schedules own the whole run (warmup, stable phase and decay), so
+        # they are returned directly rather than composed below.
+        return get_wsd_lr_scheduler(
+            norm_scheduler_name,
+            optimizer,
+            training_steps=training_steps,
+            warm_up_steps=warm_up_steps,
+            decay_steps=decay_steps,
+            lr_end=lr_end,
+            lr=lr,
+            num_cycles=num_cycles,
+        )
     main_scheduler = _get_main_lr_scheduler(
         norm_scheduler_name,
         optimizer,

@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import pytest
@@ -197,3 +198,101 @@ def test_get_scheduler_cosineannealingwarmrestarts(optimizer: Adam):
     assert isinstance(main_scheduler, CosineAnnealingWarmRestarts)
     assert main_scheduler.T_0 == 4
     assert main_scheduler.eta_min == 0.05
+
+
+def test_get_scheduler_wsdlinear_matches_constant_with_warmup_and_decay():
+    wsd_optimizer = Adam([torch.tensor(1.0)], lr=LR)
+    constant_optimizer = Adam([torch.tensor(1.0)], lr=LR)
+    wsd_scheduler = get_lr_scheduler(
+        "wsdlinear",
+        wsd_optimizer,
+        lr=LR,
+        warm_up_steps=2,
+        decay_steps=4,
+        training_steps=6,
+        lr_end=0.0,
+        num_cycles=1,
+    )
+    constant_scheduler = get_lr_scheduler(
+        "constant",
+        constant_optimizer,
+        lr=LR,
+        warm_up_steps=2,
+        decay_steps=4,
+        training_steps=6,
+        lr_end=0.0,
+        num_cycles=1,
+    )
+    for _ in range(6):
+        assert wsd_scheduler.get_last_lr() == pytest.approx(
+            constant_scheduler.get_last_lr()
+        )
+        step(wsd_optimizer, wsd_scheduler)
+        step(constant_optimizer, constant_scheduler)
+    assert wsd_scheduler.get_last_lr() == pytest.approx(
+        constant_scheduler.get_last_lr()
+    )
+
+
+def test_get_scheduler_wsdsqrt_decays_slower_than_wsdlinear():
+    sqrt_optimizer = Adam([torch.tensor(1.0)], lr=LR)
+    linear_optimizer = Adam([torch.tensor(1.0)], lr=LR)
+    sqrt_scheduler = get_lr_scheduler(
+        "wsdsqrt",
+        sqrt_optimizer,
+        lr=LR,
+        warm_up_steps=0,
+        decay_steps=4,
+        training_steps=6,
+        lr_end=0.0,
+        num_cycles=1,
+    )
+    linear_scheduler = get_lr_scheduler(
+        "wsdlinear",
+        linear_optimizer,
+        lr=LR,
+        warm_up_steps=0,
+        decay_steps=4,
+        training_steps=6,
+        lr_end=0.0,
+        num_cycles=1,
+    )
+    sqrt_lrs = [sqrt_scheduler.get_last_lr()[0]]
+    linear_lrs = [linear_scheduler.get_last_lr()[0]]
+    for _ in range(6):
+        step(sqrt_optimizer, sqrt_scheduler)
+        step(linear_optimizer, linear_scheduler)
+        sqrt_lrs.append(sqrt_scheduler.get_last_lr()[0])
+        linear_lrs.append(linear_scheduler.get_last_lr()[0])
+    # both shapes share the stable phase and the fully decayed floor
+    assert sqrt_lrs[:3] == pytest.approx(linear_lrs[:3])
+    assert sqrt_lrs[6] == pytest.approx(0.0)
+    assert linear_lrs[6] == pytest.approx(0.0)
+    # mid-decay, 1-sqrt keeps the learning rate closer to the peak
+    assert linear_lrs[4] == pytest.approx(LR / 2)
+    assert sqrt_lrs[4] == pytest.approx(LR * math.sqrt(0.5))
+    assert sqrt_lrs[4] > linear_lrs[4]
+
+
+def test_get_scheduler_wsdlinear_with_schedule_jumps():
+    jump_optimizer = Adam([torch.tensor(1.0)], lr=LR)
+    jump_scheduler = get_lr_scheduler(
+        "wsdlinear",
+        jump_optimizer,
+        lr=LR,
+        warm_up_steps=2,
+        decay_steps=5,
+        training_steps=20,
+        lr_end=0.0,
+        num_cycles=2,
+    )
+    lrs = [jump_scheduler.get_last_lr()[0]]
+    for _ in range(19):
+        step(jump_optimizer, jump_scheduler)
+        lrs.append(jump_scheduler.get_last_lr()[0])
+    assert lrs[:3] == pytest.approx([LR / 2, LR, LR])
+    assert lrs[9] == pytest.approx(LR / 5)
+    # the learning rate jumps back to the peak once the first cycle has decayed
+    assert lrs[10] == pytest.approx(LR)
+    # the second cycle decays to the same place
+    assert lrs[19] == pytest.approx(LR / 5)

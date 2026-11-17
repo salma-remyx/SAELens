@@ -256,6 +256,63 @@ def test_language_model_sae_runner_top_k():
     # know whether or not this works by looking at the dashboard!
 
 
+def test_language_model_sae_runner_wsd_schedule():
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
+
+    total_training_steps = 500
+    total_training_tokens = total_training_steps * 4096
+
+    cfg = LanguageModelSAERunnerConfig(
+        sae=TopKTrainingSAEConfig(
+            k=32,
+            d_sae=512,
+            d_in=512,
+            dtype="float32",
+            device=device,
+            apply_b_dec_to_input=True,
+        ),
+        model_name="gelu-1l",
+        hook_name="blocks.0.hook_mlp_out",
+        dataset_path="NeelNanda/c4-tokenized-2b",
+        context_size=256,
+        is_dataset_tokenized=True,
+        prepend_bos=True,
+        training_tokens=total_training_tokens,
+        train_batch_size_tokens=4096,
+        # warmup-stable-decay with a 1-sqrt decay over the last 10% of the run
+        lr_scheduler_name="wsdsqrt",
+        lr_warm_up_steps=total_training_steps // 20,
+        lr_decay_steps=total_training_steps // 10,
+        lr_end=0.0,
+        lr=4e-5,
+        n_batches_in_buffer=64,
+        store_batch_size_prompts=16,
+        feature_sampling_window=1000,
+        dead_feature_window=1000,
+        dead_feature_threshold=1e-4,
+        compile_sae=False,
+        logger=LoggingConfig(
+            wandb_project="benchmark",
+            wandb_log_frequency=100,
+        ),
+        device=device,
+        seed=42,
+        n_checkpoints=0,
+        checkpoint_path="checkpoints",
+        dtype="float32",
+    )
+
+    sae = LanguageModelSAETrainingRunner(cfg).run()
+
+    assert sae is not None
+    # know whether or not this works by looking at the dashboard!
+
+
 def test_language_model_sae_runner_othellogpt():
     if torch.cuda.is_available():
         device = "cuda"

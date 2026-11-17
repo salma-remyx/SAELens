@@ -170,11 +170,11 @@ class LanguageModelSAERunnerConfig(Generic[T_TRAINING_SAE_CONFIG]):
         adam_beta1 (float): The beta1 parameter for the Adam optimizer.
         adam_beta2 (float): The beta2 parameter for the Adam optimizer.
         lr (float): The learning rate.
-        lr_scheduler_name (str): The name of the learning rate scheduler to use (e.g., "constant", "cosineannealing", "cosineannealingwarmrestarts").
+        lr_scheduler_name (str): The name of the learning rate scheduler to use (e.g., "constant", "cosineannealing", "cosineannealingwarmrestarts", "wsdlinear", "wsdsqrt").
         lr_warm_up_steps (int): The number of warm-up steps for the learning rate.
         lr_end (float, optional): The end learning rate if using a scheduler like cosine annealing. Defaults to `lr / 10`.
         lr_decay_steps (int): The number of decay steps for the learning rate if using a scheduler with decay.
-        n_restart_cycles (int): The number of restart cycles for the cosine annealing with warm restarts scheduler.
+        n_restart_cycles (int): The number of restart cycles for the cosine annealing with warm restarts scheduler, or the number of decay cycles for the wsd schedules.
         dead_feature_window (int): The window size (in training steps) for detecting dead features.
         feature_sampling_window (int): The window size (in training steps) for resampling features (e.g. dead features).
         dead_feature_threshold (float): The threshold below which a feature's activation frequency is considered dead.
@@ -263,12 +263,12 @@ class LanguageModelSAERunnerConfig(Generic[T_TRAINING_SAE_CONFIG]):
     ## Learning Rate Schedule
     lr: float = 3e-4
     lr_scheduler_name: str = (
-        "constant"  # constant, cosineannealing, cosineannealingwarmrestarts
+        "constant"  # constant, cosineannealing, cosineannealingwarmrestarts, wsdlinear, wsdsqrt
     )
     lr_warm_up_steps: int = 0
-    lr_end: float | None = None  # only used for cosine annealing, default is lr / 10
+    lr_end: float | None = None  # used by cosine annealing and wsd schedules, default is lr / 10
     lr_decay_steps: int = 0
-    n_restart_cycles: int = 1  # used only for cosineannealingwarmrestarts
+    n_restart_cycles: int = 1  # used by cosineannealingwarmrestarts and wsd schedules
 
     # Resampling protocol args
     dead_feature_window: int = 1000  # unless this window is larger feature sampling,
