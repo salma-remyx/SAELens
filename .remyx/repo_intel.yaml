@@ -114,17 +114,17 @@ observed_landing_zones:
     timestamp: '2026-11-12T15:17:40Z'
   - arxiv: 2611.14168v1
     mode: Mode 2 (adapted port)
-    call_site_specifics: "(none) \u2014 no pre-existing module invokes it; it is a\
-      \ new public library API imported as sae_lens.analysis.atom_recovery, exercised\
-      \ by benchmark/test_typical_analysis_workflow.py (a pre-existing empty p"
-    branch: representational-atoms-in-neural-networks-v3
-    timestamp: '2026-11-15T14:02:05Z'
+    call_site_specifics: "(none \u2014 new public library module; external callers\
+      \ import sae_lens.analysis.atom_recovery, matching this subpackage's convention:\
+      \ neuronpedia_integration is likewise imported by module path rather th"
+    branch: representational-atoms-in-neural-networks-v4
+    timestamp: '2026-11-18T15:40:05Z'
   - arxiv: 2405.18392v3
     mode: ''
     call_site_specifics: ''
     branch: scaling-laws-and-compute-optimal-training-beyond-fixed-train
     timestamp: '2026-11-17T15:54:20Z'
-  last_observed: '2026-11-17T15:54:20Z'
+  last_observed: '2026-11-18T15:40:05Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -237,4 +237,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-17T15:54:20Z'
+last_updated: '2026-11-18T15:40:05Z'
