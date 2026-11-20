@@ -131,7 +131,12 @@ observed_landing_zones:
       \ ...); after registration, "
     branch: explanations-that-transfer-interpreting-medical-retrieval-wi
     timestamp: '2026-11-19T15:59:23Z'
-  last_observed: '2026-11-19T15:59:23Z'
+  - arxiv: 2611.08487v1
+    mode: ''
+    call_site_specifics: ''
+    branch: user-embeddings-are-superpositions-of-interpretable-behavior
+    timestamp: '2026-11-20T15:36:23Z'
+  last_observed: '2026-11-20T15:36:23Z'
 - path: sae_lens/training/
   shape_tags:
   - unclassified
@@ -244,4 +249,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-19T15:59:23Z'
+last_updated: '2026-11-20T15:36:23Z'
