@@ -234,7 +234,14 @@ observed_landing_zones:
       via get_sae_class (sae_lens/registry.py:40, sae_lens/saes'
     branch: interpretable-sparse-fine-tuning-with-topklora-enables-faith
     timestamp: '2026-11-03T14:08:16Z'
-  last_observed: '2026-11-03T14:08:16Z'
+  - arxiv: 2611.18179v1
+    mode: Mode 2 (adapted port)
+    call_site_specifics: 'Generic training loop: sae_lens/training/sae_trainer.py:341
+      calls training_forward_pass, which invokes the overridden calculate_aux_loss;
+      the class itself is instantiated by the pre-existing MultiSAET'
+    branch: explanations-that-transfer-interpreting-medical-retrieval-wi-v2
+    timestamp: '2026-11-21T14:37:05Z'
+  last_observed: '2026-11-21T14:37:05Z'
 - path: sae_lens/
   shape_tags:
   - library-shape-public-api
@@ -249,4 +256,4 @@ observed_landing_zones:
   last_observed: '2026-10-21T11:43:54Z'
 rejected_shapes: []
 coordination_signals: []
-last_updated: '2026-11-20T15:36:23Z'
+last_updated: '2026-11-21T14:37:05Z'
