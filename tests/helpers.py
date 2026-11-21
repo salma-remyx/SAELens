@@ -9,6 +9,9 @@ from transformer_lens import HookedTransformer
 from sae_lens.config import LanguageModelSAERunnerConfig, LoggingConfig
 from sae_lens.registry import SAE_TRAINING_CLASS_REGISTRY
 from sae_lens.saes.batchtopk_sae import BatchTopKTrainingSAEConfig
+from sae_lens.saes.contrastive_batchtopk_sae import (
+    ContrastiveBatchTopKTrainingSAEConfig,
+)
 from sae_lens.saes.gated_sae import GatedSAEConfig, GatedTrainingSAEConfig
 from sae_lens.saes.jumprelu_sae import JumpReLUSAEConfig, JumpReLUTrainingSAEConfig
 from sae_lens.saes.matching_pursuit_sae import (
@@ -142,6 +145,8 @@ class TrainingSAEConfigDict(TypedDict, total=False):
     target_l0: float | None  # For JumpReLU
     pre_act_loss_coefficient: float | None  # For JumpReLU
     topk_threshold_lr: float  # For BatchTopK
+    contrastive_loss_coefficient: float  # For ContrastiveBatchTopK
+    contrastive_temperature: float  # For ContrastiveBatchTopK
     jumprelu_sparsity_loss_mode: Literal["step", "tanh", "quadratic"]  # For JumpReLU
     jumprelu_tanh_scale: float  # For JumpReLU
     jumprelu_ste_to_input: bool  # For JumpReLU
@@ -617,6 +622,40 @@ def build_matryoshka_batchtopk_sae_training_cfg(
     return build_matryoshka_batchtopk_runner_cfg(**kwargs).sae  # type: ignore
 
 
+# --- Contrastive BatchTopK SAE Builder ---
+def build_contrastive_batchtopk_runner_cfg(
+    **kwargs: Any,
+) -> LanguageModelSAERunnerConfig[ContrastiveBatchTopKTrainingSAEConfig]:
+    """Helper to create a mock instance for Contrastive BatchTopK SAE."""
+    default_sae_config: dict[str, Any] = {
+        "d_in": 64,
+        "d_sae": 256,
+        "dtype": "float32",
+        "device": "cpu",
+        "normalize_activations": "none",
+        "decoder_init_norm": 0.1,
+        "apply_b_dec_to_input": False,
+        "k": 10,
+        "topk_threshold_lr": 0.02,
+        "contrastive_loss_coefficient": 1e-5,
+        "contrastive_temperature": 0.05,
+        "rescale_acts_by_decoder_norm": True,
+    }
+    runner_cfg = _build_runner_config(
+        ContrastiveBatchTopKTrainingSAEConfig,
+        default_sae_config,
+        **kwargs,
+    )
+    _update_sae_metadata(runner_cfg)
+    return runner_cfg
+
+
+def build_contrastive_batchtopk_sae_training_cfg(
+    **kwargs: Any,
+) -> ContrastiveBatchTopKTrainingSAEConfig:
+    return build_contrastive_batchtopk_runner_cfg(**kwargs).sae  # type: ignore
+
+
 MODEL_CACHE: dict[str, HookedTransformer] = {}
 
 
@@ -753,6 +792,7 @@ SAE_TRAINING_CONFIG_BUILDERS = {
     "topk": build_topk_sae_training_cfg,
     "batchtopk": build_batchtopk_sae_training_cfg,
     "matryoshka_batchtopk": build_matryoshka_batchtopk_sae_training_cfg,
+    "contrastive_batchtopk": build_contrastive_batchtopk_sae_training_cfg,
     "matching_pursuit": build_matching_pursuit_sae_training_cfg,
 }
 
@@ -772,5 +812,6 @@ SAE_RUNNER_CONFIG_BUILDERS = {
     "topk": build_topk_runner_cfg,
     "batchtopk": build_batchtopk_runner_cfg,
     "matryoshka_batchtopk": build_matryoshka_batchtopk_runner_cfg,
+    "contrastive_batchtopk": build_contrastive_batchtopk_runner_cfg,
     "matching_pursuit": build_matching_pursuit_runner_cfg,
 }

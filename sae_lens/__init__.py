@@ -9,6 +9,8 @@ from sae_lens.saes import (
     SAE,
     BatchTopKTrainingSAE,
     BatchTopKTrainingSAEConfig,
+    ContrastiveBatchTopKTrainingSAE,
+    ContrastiveBatchTopKTrainingSAEConfig,
     GatedSAE,
     GatedSAEConfig,
     GatedTrainingSAE,
@@ -112,6 +114,8 @@ __all__ = [
     "LoggingConfig",
     "BatchTopKTrainingSAE",
     "BatchTopKTrainingSAEConfig",
+    "ContrastiveBatchTopKTrainingSAE",
+    "ContrastiveBatchTopKTrainingSAEConfig",
     "Transcoder",
     "TranscoderConfig",
     "SkipTranscoder",
@@ -162,6 +166,11 @@ register_sae_training_class(
     "matryoshka_batchtopk",
     MatryoshkaBatchTopKTrainingSAE,
     MatryoshkaBatchTopKTrainingSAEConfig,
+)
+register_sae_training_class(
+    "contrastive_batchtopk",
+    ContrastiveBatchTopKTrainingSAE,
+    ContrastiveBatchTopKTrainingSAEConfig,
 )
 register_sae_class("transcoder", Transcoder, TranscoderConfig)
 register_sae_class("skip_transcoder", SkipTranscoder, SkipTranscoderConfig)
